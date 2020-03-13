@@ -1,5 +1,5 @@
 steps:
 - name: 'gcr.io/cloud-builders/docker'
   args: ['build', '-t', 'gcr.io/corona-shiny/app-image', '.']
-  timeout: 900s
 images: ['gcr.io/corona-shiny/app-image']
+timeout: 900s
