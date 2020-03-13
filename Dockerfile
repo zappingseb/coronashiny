@@ -15,6 +15,8 @@ RUN install2.r --error \
     dplyr \
     ggplot2 \
     rlang \
+    xml2 \
+    rvest \
     tidyverse \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
