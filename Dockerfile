@@ -17,9 +17,14 @@ RUN install2.r --error \
     rlang \
     xml2 \
     rvest \
-    tidyverse \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
+## Install packages from CRAN
+RUN install2.r --error \ 
+    -r 'http://cran.rstudio.com' \
+    tidyverse \
+    ## clean up
+    && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 ## assume shiny app is in build folder /shiny
 COPY ./shiny/ /srv/shiny-server/corona/
