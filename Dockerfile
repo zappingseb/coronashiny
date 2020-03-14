@@ -28,4 +28,4 @@ RUN install2.r --error \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 ## assume shiny app is in build folder /shiny
-COPY ./shiny/ /srv/shiny-server/corona/
+COPY ./shiny/ /srv/shinyapps/corona/
