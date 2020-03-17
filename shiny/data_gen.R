@@ -4,7 +4,7 @@ per_country_data <- function(covid_data) {
     summarise_all(funs(sum))
 }
 
-new_data_gen <- function(covid_data, countries) {
+new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE) {
   
   start_date <- str_replace(names(covid_data)[2], "X", "0") %>%
     as.Date(format="%m.%d.%y")
@@ -31,12 +31,22 @@ new_data_gen <- function(covid_data, countries) {
   country_data <- gather(selected_data, key = country) %>%
     filter(!is.na(country))
   
-  return(
-    cbind(
-      add_growth_rate(country_data),
-      data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
+  if (growth_add) {
+    
+    return(
+      cbind(
+        add_growth_rate(country_data),
+        data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
+      )
     )
-  )
+  } else {
+    return(
+      cbind(
+        country_data,
+        data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
+      )
+    )
+  }
 }
 
 add_rel_data <- function(covid_data, pop_data) {
@@ -125,7 +135,7 @@ key_factors <- function(covid_data_long, population_data) {
                 doubling_days = round(doubling_days, 2),
                 still_exponential = ifelse(is_exponential == 1, "yes", "no")
               ) %>%
-              select(doubling_days, still_exponential, value)
+              select(doubling_days, still_exponential, value, deaths)
             ) %>%
     select(-country1) %>%
     rename(Country = country) %>%
@@ -135,6 +145,15 @@ key_factors <- function(covid_data_long, population_data) {
     filter(!is.na(value)) %>%
     rename( population = Year_2016) %>%
     mutate(per_100000 = round(as.numeric(value)/(population/100000), 1),
-           population = round(population/1000000, 2)) %>%
+           population = round(population/1000000, 2),
+           mortality_rate = round(100 * as.numeric(deaths)/(as.numeric(value)), 2)
+           ) %>%
     select(-Country_Code)
+  return(factor_data)
+}
+
+add_mortality <- function(dataset) {
+  dataset %>%
+    mutate(mortality = as.numeric(deaths)/ as.numeric(value) * 100) %>%
+    replace_na(list("mortality" = 0))
 }

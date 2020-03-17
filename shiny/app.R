@@ -17,7 +17,7 @@ library(shinyWidgets)
 library(DT)
 library(RColorBrewer)
 source("data_gen.R")
-
+library(shinyjs)
 
 default_countries <- c("Switzerland", "Korea, South", "Italy")
 
@@ -38,7 +38,7 @@ ui <- material_page(
   nav_bar_color = "green",
   
   title = "COVID-19 data",
-  
+  shinyjs::useShinyjs(),
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
     tags$script(type = "text/javascript", src = "jquery_browser.js")
@@ -51,16 +51,36 @@ ui <- material_page(
     # Place side-nav tabs within side-nav
     material_side_nav_tabs(
       side_nav_tabs = c(
-        "Country Charts" = "housing_prices",
         "All Countries Table" = "all_countries",
+        "Timeline Charts" = "housing_prices",
         "About" = "about"
       ),
-      icons = c("insert_chart", "format_list_bulleted", "info_outline")
-    )
+      icons = c("format_list_bulleted", "insert_chart", "info_outline")
+    ),
+    textOutput("last_modified")
   ),
   material_side_nav_tab_content(
+    side_nav_tab_id = "all_countries",
+      tags$script('$("#DataTables_Table_0").show()'),
+      material_row(
+        material_card(
+          title = "Overview table",
+          p("This table lists all countries that showed exponential growth (doubling of infections within 6.5 days or less)
+            for at least one day. The columns show the following:"),
+          material_button(input_id = "showExbutton", "Show Explanation of columns"),
+          uiOutput("explanation")
+          
+          )
+      ),
+      material_row(
+        material_column(width=12,
+                        DT::dataTableOutput("MaxDoublingTime")
+        )
+      )
+    ),
+  material_side_nav_tab_content(
     side_nav_tab_id = "housing_prices",
-    
+        
         material_row(
           material_column(
             width = 12,
@@ -112,32 +132,19 @@ ui <- material_page(
                 width = 12,
                 plotlyOutput(outputId = "grouwthFactor", width = "100%")
               )
-        )
-  ),
-  material_side_nav_tab_content(
-    side_nav_tab_id = "all_countries",
+        ),
         material_row(
-          material_card(
-            title = "Overview table",
-            p("This table lists all countries that showed exponential growth (doubling of infections within 6.5 days or less)
-              for at least one day. The columns show the following:"),
-            tags$ul(
-              tags$li(tags$b("Country:"), "name of the country"),
-              tags$li(tags$b("Maximum time of exponential growth in a row:"), "The number of days a country showed exponential growth
-                      (doubling of infections in short time) in a row. This means there was no phase of slow growth or decrease in between."),
-              tags$li(tags$b("Days to double infections:"), "This gives the time it took until today to double the number of infections. A
-                      higher number is better, because it takes longer to infect more people"),
-              tags$li(tags$b("Exponential growth today:"), "Whether the countries number of infections is still exponentially growing"),
-              tags$li(tags$b("Confirmed cases:"), "Confirmed cases today due to the Johns Hopkins CSSE data set"),
-              tags$li(tags$b("Population:"), "Number of people living inside the country"),
-              tags$li(tags$b("Confirmed cases on 100,000 inhabitants:"), "How many people have been infected if you would randomely choose
-                      100,000 people from this country.")
-            )
+          material_card(title = "Mortality:",
+                        tagList(
+                          p("This shows the percentage of lethal cases per country over time."),
+                          p(tags$em("Hovering shows total death under the braces."))
+                        )
           )
         ),
         material_row(
-          material_column(width=12,
-                          DT::dataTableOutput("MaxDoublingTime")
+          material_column(
+            width = 12,
+            plotlyOutput(outputId = "mortality", width = "100%")
           )
         )
   ),
@@ -153,22 +160,43 @@ ui <- material_page(
       ),
       material_column(width = 6,
         h2("The author"),
-        img(src="./img/zappingseb.jfif", width=60),
-        p(a(href="https://www.mail-wolf.de", "Sebastian Engel-Wolf"), " is a freelance scientific software developer developing R-shiny apps in
-          a pharmaceutical environment"),
+        material_row(
+          material_column(width = 6,
+                          img(src="./img/zappingseb.jfif", width=60),
+                          p(a(href="https://www.mail-wolf.de", "Sebastian Engel-Wolf"), " is a freelance scientific software developer developing R-shiny apps in
+                            a pharmaceutical environment")
+                          ),
+          material_column(width = 6,
+                          img(src="./img/graphcount.jpg", width=60),
+                          p("My Monkey and Graph Count did some work")          
+                          )
+        ),
         p(a(href="https://github.com/zappingseb/coronashiny", "All code for this project"), "can be found on github")
+        
       )
     )
-  )
+  ),
+  tags$script("
+              $('a.waves-effect').on('click', function (e) {
+  if($('.shiny-material-side-nav-tab.active').attr('id') == 'all_countries_tab_id'){
+    $('#MaxDoublingTime thead').show()
+  } else {
+    $('#MaxDoublingTime thead').hide()
+  };
+});
+              ")
  
 )
 
 # Define server logic required to draw a histogram
 server <- function(input, output, session) {
   
-  data_confirmed <- reactive({
+  session$userData$showEx <- reactiveVal(TRUE)
+  
+  git_pull <- reactive({
     
-    material_spinner_show(session, output_id = "housing_prices") 
+   
+    
     if (dir.exists("COVID-19")) {
       setwd("COVID-19")
       system("git pull")
@@ -177,8 +205,31 @@ server <- function(input, output, session) {
       
       system("git clone https://github.com/CSSEGISandData/COVID-19.git", timeout = 1000)
     }
+  })
+  
+  data_confirmed <- reactive({
+   
     
+    
+    git_pull()
     per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"))
+  })
+
+  data_death <- reactive({
+    
+    
+    git_pull()
+    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv"))
+    
+    
+  })
+  
+  output$last_modified <- renderText({
+    git_pull()
+    paste(
+      "Last modified:",
+      file.info("COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")["mtime"][1,1]
+    )
   })
   
   output$selector = renderUI({
@@ -190,16 +241,27 @@ server <- function(input, output, session) {
   })
   
   plot_data <- reactive({
+    material_spinner_show(session, output_id = "housing_prices") 
     if (!is.null(input$countries)) {
       
-      new_data_gen(data_confirmed(), input$countries)
+      data <- new_data_gen(data_confirmed(), input$countries)
+      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value)
     } else {
-      new_data_gen(data_confirmed(), default_countries)
+      data <- new_data_gen(data_confirmed(), default_countries)
+      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value)
     }
+    material_spinner_hide(session, output_id = "housing_prices") 
+    merged_data <- dplyr::left_join(data, deaths, by = c("country", "date")) %>%
+      add_mortality
+    return(merged_data)
   })
   
   all_data <- reactive({
-    new_data_gen(data_confirmed(), data_confirmed()$Country.Region)
+    confirmed <- new_data_gen(data_confirmed(), data_confirmed()$Country.Region)
+    death <- new_data_gen(data_death(), data_death()$Country.Region, FALSE) %>%
+      rename(deaths = value)
+    
+    left_join(confirmed, death, by = c("country", "date"))
   })
   
   plotly_group <- reactive({
@@ -207,7 +269,6 @@ server <- function(input, output, session) {
     plot_data_intern2 <- plot_data()
     # generate bins based on input$bins from ui.R
     
-    material_spinner_hide(session, output_id = "housing_prices")
     plot_ly(
       data = plot_data_intern2,
       hoverinfo = "",
@@ -272,7 +333,7 @@ server <- function(input, output, session) {
   })
   
   output$DoublingDays <- renderPlotly({
-      
+    
     plotly_group() %>%
         add_trace(x = ~date,
                         y = ~doubling_days,
@@ -290,9 +351,27 @@ server <- function(input, output, session) {
         )
     
   })
+  output$mortality <- renderPlotly({
+    
+    plotly_group() %>%
+        add_trace(x = ~date,
+                        y = ~as.numeric(mortality),
+                        type = 'scatter',
+                  text=~deaths,
+                  mode = "lines") %>%
+        layout(
+          xaxis = list(
+            title = "Date"
+          ),
+          yaxis = list(
+            title = "mortality (%)",
+            range = c(0, max(plot_data()$mortality, na.rm=TRUE) + 0.3)
+          )
+        )
+    
+  })
   
   output$MaxDoublingTime <- DT::renderDataTable({
-    
     
     df <- key_factors(all_data(), population_data_short)
     
@@ -307,8 +386,10 @@ server <- function(input, output, session) {
                 "Days to double infections (from today)",
                 "Exponential growth today?",
                 "Confirmed Cases (Johns Hopkins CSSE)",
+                "Deaths (Johns Hopkins CSSE)",
                 "Population (in Mio)",
-                "Confirmed Cases on 100,000 inhabitants"
+                "Confirmed Cases on 100,000 inhabitants",
+                "mortality Rate (%)"
                 ),
               options = list(
                 pageLength = 200,
@@ -338,6 +419,33 @@ server <- function(input, output, session) {
                   )
     
   })
+  
+  observeEvent(input$showExbutton, {
+    value <- !session$userData$showEx()
+    session$userData$showEx(value)
+  })
+  
+  output$explanation <- renderUI({
+    if (session$userData$showEx()) {
+      tags$ul(
+        tags$li(tags$b("Country:"), "name of the country"),
+        tags$li(tags$b("Maximum time of exponential growth in a row:"), "The number of days a country showed exponential growth
+                      (doubling of infections in short time) in a row. This means there was no phase of slow growth or decrease in between."),
+        tags$li(tags$b("Days to double infections:"), "This gives the time it took until today to double the number of infections. A
+                      higher number is better, because it takes longer to infect more people"),
+        tags$li(tags$b("Exponential growth today:"), "Whether the countries number of infections is still exponentially growing"),
+        tags$li(tags$b("Confirmed cases:"), "Confirmed cases today due to the Johns Hopkins CSSE data set"),
+        tags$li(tags$b("Deaths:"), "Summed up deaths until today due to the Johns Hopkins CSSE data set"),
+        tags$li(tags$b("Population:"), "Number of people living inside the country"),
+        tags$li(tags$b("Confirmed cases on 100,000 inhabitants:"), "How many people have been infected if you would randomely choose
+                      100,000 people from this country."),
+        tags$li(tags$b("mortality Rate:"), "Percentage of deaths per confirmed case")
+      )
+    } else {
+      p()
+    }
+  })
+  
 }
 
 # Run the application 
