@@ -5,8 +5,8 @@ library(stringr)
 library(tidyverse)
 population_data <- read.csv("~/population-figures-by-country-csv_csv.csv")
 population_data_short <- rbind(population_data %>% select(Country, Country_Code, Year_2016) %>%
-  mutate(Country = str_replace(Country, "Korea, Rep.", "Korea, South")),
-  data.frame(Country = "Taiwan", Country_Code = "TAI", Year_2016 = 23780000)
+                                 mutate(Country = str_replace(Country, "Korea, Rep.", "Korea, South")),
+                               data.frame(Country = "Taiwan", Country_Code = "TAI", Year_2016 = 23780000)
 )
 
 setwd("~/COVID-19")
@@ -21,7 +21,7 @@ covid19_recovered <-  read.csv("~/COVID-19/csse_covid_19_data/csse_covid_19_time
 
 country_selection <- c("Germany", "Korea, South", "Taiwan", "Switzerland")
 
-new_data_gen <- function(covid_data, countries, pop_data) {
+new_data_gen <- function(covid_data, countries) {
   
   start_date <- str_replace(names(covid_data)[5], "X", "0") %>%
     as.Date(format="%m.%d.%y")
@@ -49,16 +49,10 @@ new_data_gen <- function(covid_data, countries, pop_data) {
   country_data <- gather(selected_data, key = country) %>%
     filter(!is.na(country))
   
-  pop_data <- pop_data %>% filter(Country %in% c(countries))
+  
   return(
     cbind(
-      country_data %>% rowwise() %>%
-        mutate(
-          value_rel = 100 * as.numeric(value) / pop_data %>%
-            filter(Country == country) %>%
-            pull()
-        ) %>%
-        rbind(),
+      country_data,
       data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
     )
   )
