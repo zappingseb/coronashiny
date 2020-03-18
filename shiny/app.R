@@ -29,7 +29,7 @@ population_data_short <- rbind(
     mutate(Country = str_replace(Country, "Russian Federation", "Russia")) %>%
     mutate(Country = str_replace(Country, "United States", "US")) %>%
     mutate(Country = str_replace(Country, "Iran, Islamic Rep.", "Iran")),
-  data.frame(Country = "Taiwan", Country_Code = "TAI", Year_2016 = 23780000)
+  data.frame(Country = c("Taiwan", "China (only Hubei)"), Country_Code = c("TAI", "XXX"), Year_2016 = c(23780000, 58500000))
 )
 
 
@@ -406,7 +406,8 @@ server <- function(input, output, session) {
                                         )
                   ) %>%
       formatStyle("still_exponential",
-                  backgroundColor = styleEqual(c("no", "yes"), c("rgb(249,249,249)", "rgb(127,0,0)"))
+                  backgroundColor = styleEqual(c("no", "yes"), c("rgb(249,249,249)", "rgb(127,0,0)")),
+                  color = styleEqual(c("no", "yes"), c("rgb(0,0,0)", "rgb(255,255,255)"))
                   ) %>%
       formatStyle("max_exponential_time",
                   backgroundColor = styleInterval(brks_clrs_max_exponential_time$brks, brks_clrs_max_exponential_time$clrs),

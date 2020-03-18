@@ -6,6 +6,7 @@ library(tidyverse)
 library(ggplot2)
 library(plotly)
 library(RColorBrewer)
+library(DT)
 
 default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)")
 
@@ -59,4 +60,50 @@ plot_ly(
       title = "Total cases",
       range = c(0, max(as.numeric(merged_data$value), na.rm = TRUE) + 1)
     )
+  )
+
+df <- key_factors(merged_data, population_data_short)
+
+brks_clrs_doubling_days <- breaks_colors(df$doubling_days, reverse = TRUE)
+brks_clrs_max_exponential_time <- breaks_colors(df$max_exponential_time)
+datatable(df,
+          rownames= FALSE,
+          extensions = c("FixedHeader"),
+          colnames = c(
+            "Country",
+            "Maximum time of exponential growth in a row (since Jan 1st)",
+            "Days to double infections (from today)",
+            "Exponential growth today?",
+            "Confirmed Cases (Johns Hopkins CSSE)",
+            "Deaths (Johns Hopkins CSSE)",
+            "Population (in Mio)",
+            "Confirmed Cases on 100,000 inhabitants",
+            "mortality Rate (%)"
+          ),
+          options = list(
+            pageLength = 200,
+            fixedHeader = TRUE
+          )
+) %>%
+  formatStyle("doubling_days",
+              backgroundColor = styleInterval(brks_clrs_doubling_days$brks, brks_clrs_doubling_days$clrs),
+              color = styleInterval(brks_clrs_doubling_days$brks,
+                                    c(
+                                      rep("white", floor(1 * length(brks_clrs_doubling_days$clrs) / 4)),
+                                      rep("black", ceiling(3 * length(brks_clrs_doubling_days$clrs) / 4))
+                                    )
+              )
+  ) %>%
+  formatStyle("still_exponential",
+              backgroundColor = styleEqual(c("no", "yes"), c("rgb(249,249,249)", "rgb(127,0,0)")),
+              color = styleEqual(c("no", "yes"), c("rgb(0,0,0)", "rgb(255,255,255)"))
+  ) %>%
+  formatStyle("max_exponential_time",
+              backgroundColor = styleInterval(brks_clrs_max_exponential_time$brks, brks_clrs_max_exponential_time$clrs),
+              color = styleInterval(brks_clrs_max_exponential_time$brks,
+                                    c(
+                                      rep("black", floor(1 * length(brks_clrs_max_exponential_time$clrs) / 4)),
+                                      rep("white", ceiling(3 * length(brks_clrs_max_exponential_time$clrs) / 4))
+                                    )
+              )
   )

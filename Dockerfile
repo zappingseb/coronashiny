@@ -5,6 +5,7 @@ MAINTAINER Sebastian Engel-Wolf (sebastian@mail-wolf.de)
 RUN install2.r --error \ 
     -r 'http://cran.rstudio.com' \
     ggplot2 \
+    DT \
     rlang \
     stringr \
     plotly \
