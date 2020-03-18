@@ -31,6 +31,7 @@ merged_data <- dplyr::left_join(data, deaths, by = c("country", "date")) %>%
 plot_ly(
   data = merged_data,
   hoverinfo = "",
+  type = "scatter",
   transforms = list(
     list(
       type = 'groupby',
