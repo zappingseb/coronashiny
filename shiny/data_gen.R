@@ -1,6 +1,14 @@
 per_country_data <- function(covid_data) {
-  covid_data %>%
-    mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>% select(-Province.State, -Lat, -Long) %>% group_by(Country.Region) %>%
+  
+  no_china <- covid_data %>% filter(Country.Region != "China") 
+  no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Lat = 0, Long = 0, t(colSums(no_china[,c(-1, -2, -3, -4)])))
+  hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)") 
+  global <- data.frame(Province.State = "", Country.Region = "AA - Global", Lat = 0, Long = 0, t(colSums(covid_data[,c(-1, -2, -3, -4)])))
+  
+  rbind(covid_data, no_china, global, hubei) %>%
+    mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>%
+    select(-Province.State, -Lat, -Long) %>%
+    group_by(Country.Region) %>%
     summarise_all(funs(sum))
 }
 

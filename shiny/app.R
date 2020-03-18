@@ -19,7 +19,7 @@ library(RColorBrewer)
 source("data_gen.R")
 library(shinyjs)
 
-default_countries <- c("Switzerland", "Korea, South", "Italy")
+default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)")
 
 population_data <- read.csv("./population-figures-by-country-csv_csv.csv")
 population_data_short <- rbind(
@@ -163,7 +163,7 @@ ui <- material_page(
         material_row(
           material_column(width = 6,
                           img(src="./img/zappingseb.jfif", width=60),
-                          p(a(href="https://www.mail-wolf.de", "Sebastian Engel-Wolf"), " is a freelance scientific software developer developing R-shiny apps in
+                          p(a(href="https://mail-wolf.de/?page_id=1292", alt="Sebastian Engel-Wolf", "Sebastian Engel-Wolf"), " is a freelance scientific software developer developing R-shiny apps in
                             a pharmaceutical environment")
                           ),
           material_column(width = 6,

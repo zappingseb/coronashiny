@@ -1,4 +1,4 @@
-FROM rocker/shiny
+FROM rocker/tidyverse
 MAINTAINER Sebastian Engel-Wolf (sebastian@mail-wolf.de)
 
 # install R package dependencies
@@ -13,19 +13,19 @@ RUN apt-get update && apt-get install -y \
 ## Install packages from CRAN
 RUN install2.r --error \ 
     -r 'http://cran.rstudio.com' \
-    dplyr \
     ggplot2 \
     rlang \
+    stringr \
     xml2 \
+    plotly \
+    RColorBrewer \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
-## Install packages from CRAN
-RUN install2.r --error \ 
-    -r 'http://cran.rstudio.com' \
-    rvest \
-    tidyverse \
-    ## clean up
-    && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
-## assume shiny app is in build folder /shiny
-COPY ./shiny/ /srv/shinyapps/corona/
+RUN git clone https://github.com/CSSEGISandData/COVID-19.git
+
+ADD ./* $HOME/src/
+
+WORKDIR $HOME/src/
+
+RUN R start_script.R
