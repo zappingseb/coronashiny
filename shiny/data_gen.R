@@ -3,7 +3,7 @@ per_country_data <- function(covid_data) {
   no_china <- covid_data %>% filter(Country.Region != "China") 
   no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Lat = 0, Long = 0, t(colSums(no_china[,c(-1, -2, -3, -4)])))
   hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)") 
-  china_no_hubei <- covid_data %>% filter(Province.State != "Hubei", Country.Region = "China") %>% mutate(Country.Region = "China (without Hubei)") 
+  china_no_hubei <- covid_data %>% filter(Province.State != "Hubei", Country.Region == "China") %>% mutate(Country.Region = "China (without Hubei)") 
   global <- data.frame(Province.State = "", Country.Region = "AA - Global", Lat = 0, Long = 0, t(colSums(covid_data[,c(-1, -2, -3, -4)])))
   
   rbind(covid_data, no_china, global, hubei, china_no_hubei) %>%
