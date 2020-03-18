@@ -5,6 +5,7 @@ library(stringr)
 library(tidyverse)
 library(ggplot2)
 library(plotly)
+library(RColorBrewer)
 
 default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)")
 
