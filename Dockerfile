@@ -14,7 +14,7 @@ RUN install2.r --error \
 
 RUN git clone https://github.com/CSSEGISandData/COVID-19.git
 
-ADD ./* $HOME/src/
+COPY . $HOME/src/
 
 WORKDIR $HOME/src/
 

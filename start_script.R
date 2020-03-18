@@ -1,4 +1,4 @@
-source("shiny/data_gen.R")
+source("./shiny/data_gen.R")
 
 library(dplyr)
 library(stringr)
