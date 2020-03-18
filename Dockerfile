@@ -12,10 +12,12 @@ RUN install2.r --error \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
 
-RUN git clone https://github.com/CSSEGISandData/COVID-19.git
+
 
 COPY . $HOME/src/
 
 WORKDIR $HOME/src/
+
+RUN git clone https://github.com/CSSEGISandData/COVID-19.git
 
 RUN Rscript start_script.R
