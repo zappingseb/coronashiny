@@ -18,4 +18,4 @@ ADD ./* $HOME/src/
 
 WORKDIR $HOME/src/
 
-RUN R start_script.R
+RUN Rscript start_script.R
