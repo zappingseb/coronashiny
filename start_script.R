@@ -8,7 +8,7 @@ library(plotly)
 library(RColorBrewer)
 library(DT)
 
-default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)")
+
 
 population_data <- read.csv("./shiny/population-figures-by-country-csv_csv.csv")
 population_data_short <- rbind(
@@ -21,14 +21,34 @@ population_data_short <- rbind(
   data.frame(Country = "Taiwan", Country_Code = "TAI", Year_2016 = 23780000)
 )
 
-covid_data <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
-covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")
+covid_data <- per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"))
+covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
 
-data <- new_data_gen(per_country_data(covid_data), default_countries)
+default_countries <- covid_data$Country.Region
+
+data <- new_data_gen(covid_data, default_countries)
 deaths <- new_data_gen(per_country_data(covid_data_deaths), default_countries, FALSE) %>% rename(deaths = value)
 
 merged_data <- dplyr::left_join(data, deaths, by = c("country", "date")) %>%
   add_mortality
+
+flourish_data <- rbind(
+  merged_data %>% select(date, country, value) %>% spread(country, value) %>% mutate(area = "Confirmed Cases"),
+  merged_data %>% select(date, country, deaths) %>% spread(country, deaths) %>% mutate(area = "Deaths"),
+  merged_data %>% select(date, country, mortality) %>% spread(country, mortality) %>% mutate(area = "Mortality Rate (%)"),
+  merged_data %>% select(date, country, doubling_days) %>% spread(country, doubling_days) %>% mutate(area = "Days to duplicate cases"),
+  merged_data %>% select(date, country, growth.factor) %>% spread(country, growth.factor) %>% mutate(area = "Growth Factor")
+) 
+
+flourish_first_choices <- c(
+  which(names(flourish_data) == "date"),
+  which(names(flourish_data) == "Italy"),
+  which(names(flourish_data) == "Korea, South"),
+  which(names(flourish_data) == "Switzerland")
+)
+
+flourish_data[, c(flourish_first_choices, setdiff(1:ncol(flourish_data), flourish_first_choices))] %>%
+  write.csv("C:/Users/wolfs25/Downloads/flourish_try.csv")
 
 plot_ly(
   data = merged_data,

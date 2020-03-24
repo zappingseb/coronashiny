@@ -118,7 +118,7 @@ breaks_colors <- function(vec, reverse = FALSE) {
   brks <- quantile(vec, probs = seq(.05, .95, .05), na.rm = TRUE)
   # clrs <- rev(round(seq(255, 40, length.out = length(brks) + 1), 0) %>%
   # {paste0("rgb(255,", ., ",", ., ")")})
-  clrs_hex <- colorRampPalette(RColorBrewer::brewer.pal(n = 9, "OrRd"))(length(brks) + 1)
+  clrs_hex <- colorRampPalette(c("#051923", "#003554", "#2196F3", "#16B0F7"))(length(brks) + 1)
   
   clrs <- apply(
     if(reverse) col2rgb(rev(clrs_hex)) else col2rgb(clrs_hex),
@@ -144,18 +144,19 @@ key_factors <- function(covid_data_long, population_data) {
                 doubling_days = round(doubling_days, 2),
                 still_exponential = ifelse(is_exponential == 1, "yes", "no")
               ) %>%
-              select(doubling_days, still_exponential, value, deaths)
+              select(doubling_days, still_exponential, value, deaths, recovered)
             ) %>%
     select(-country1) %>%
     rename(Country = country) %>%
     dplyr::arrange(doubling_days)
   
-  factor_data <- full_join(factor_data, population_data) %>% 
+  factor_data <- left_join(factor_data, population_data, by = "Country") %>% 
     filter(!is.na(value)) %>%
     rename( population = Year_2016) %>%
     mutate(per_100000 = round(as.numeric(value)/(population/100000), 1),
            population = round(population/1000000, 2),
-           mortality_rate = round(100 * as.numeric(deaths)/(as.numeric(value)), 2)
+           mortality_rate = round(100 * as.numeric(deaths)/(as.numeric(value)), 2),
+           active = as.numeric(value) - as.numeric(deaths) - as.numeric(recovered)
            ) %>%
     select(-Country_Code)
   return(factor_data)
@@ -163,6 +164,8 @@ key_factors <- function(covid_data_long, population_data) {
 
 add_mortality <- function(dataset) {
   dataset %>%
-    mutate(mortality = as.numeric(deaths)/ as.numeric(value) * 100) %>%
-    replace_na(list("mortality" = 0))
+    mutate(mortality = as.numeric(deaths)/ as.numeric(value) * 100,
+           active = as.numeric(value) - ifelse(is.na(as.numeric(deaths)), 0, as.numeric(deaths)) - as.numeric(recovered)
+           ) %>%
+    replace_na(list("mortality" = 0, "active" = 0))
 }
