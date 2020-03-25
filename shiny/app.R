@@ -187,7 +187,7 @@ server <- function(input, output, session) {
     git_pull()
     div(style = "font-size: 0.5em; text-align:center",
         tags$p("Data last modified:"),
-        tags$p(file.info("COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv")["mtime"][1,1]),
+        tags$p(file.info("COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")["mtime"][1,1]),
         tags$br(),
         HTML(
           "<p>&copy; <a target='_new' href='https://mail-wolf.de/?page_id=1292'>zappingseb</a></p>"

@@ -93,8 +93,8 @@ dt_table <- function(input, output, session, all_data = NULL, population_data_sh
                   # )
       ) %>%
       formatStyle("still_exponential",
-                  backgroundColor = styleEqual(c("no", "yes"), c("rgb(30,150,243)", "rgb(5,25,35)")),
-                  color = styleEqual(c("no", "yes"), c("rgb(0,0,0)", "rgb(255,255,255)"))
+                  backgroundColor = styleEqual(c("yes", "no"), c("rgb(22, 176, 247)", "rgb(5,25,35)")),
+                  color = styleEqual(c("no", "yes"), c("rgb(255,255,255)", "rgb(255,255,255)"))
       ) %>%
       formatStyle("max_exponential_time",
                   backgroundColor = styleInterval(brks_clrs_max_exponential_time$brks, brks_clrs_max_exponential_time$clrs),
