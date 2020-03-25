@@ -6,7 +6,14 @@ aboutUI <- function(id) {
                     img(src="./img/enterprise-medicine.logo.small.horizontal.white.581be190.png", width=120, style="background-color:#002d72;padding: 0.8em;
 "),
                     p("All data is taken from Johns Hopkins CSSE dataset on github"),
-                    a(href="https://github.com/CSSEGISandData/COVID-19", "Johns Hopkins Github Repository")
+                    a(href="https://github.com/CSSEGISandData/COVID-19", "Johns Hopkins Github Repository"),
+                    tags$br(),
+                    h2("Updates"),
+                    tags$ul(
+                      tags$li(
+                        tags$b("2020-03-25: "),tags$span("Data was moved on CSSE data set, now Recovered Cases are only updated on a daily basis.")
+                      )
+                    )
     ),
     material_column(width = 6,
                     h2("The author"),

@@ -20,35 +20,33 @@ population_data_short <- rbind(
     mutate(Country = str_replace(Country, "Iran, Islamic Rep.", "Iran")),
   data.frame(Country = "Taiwan", Country_Code = "TAI", Year_2016 = 23780000)
 )
-
-covid_data <- per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"))
-covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv")
+setwd("shiny")
+if (dir.exists("COVID-19")) {
+  setwd("COVID-19")
+  system("git pull")
+  setwd("..")
+} else {
+  system("git clone https://github.com/CSSEGISandData/COVID-19.git", timeout = 1000)
+}
+covid_data <- per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
+covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
 
 default_countries <- covid_data$Country.Region
 
-data <- new_data_gen(covid_data, default_countries)
+
+
+confirmed <- new_data_gen(covid_data, default_countries)
 deaths <- new_data_gen(per_country_data(covid_data_deaths), default_countries, FALSE) %>% rename(deaths = value)
+recovered <- generate_from_daily()
 
-merged_data <- dplyr::left_join(data, deaths, by = c("country", "date")) %>%
-  add_mortality
+# recovered <- new_data_gen(per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")),
+                          # default_countries, FALSE) %>% rename(recovered = value)
 
-flourish_data <- rbind(
-  merged_data %>% select(date, country, value) %>% spread(country, value) %>% mutate(area = "Confirmed Cases"),
-  merged_data %>% select(date, country, deaths) %>% spread(country, deaths) %>% mutate(area = "Deaths"),
-  merged_data %>% select(date, country, mortality) %>% spread(country, mortality) %>% mutate(area = "Mortality Rate (%)"),
-  merged_data %>% select(date, country, doubling_days) %>% spread(country, doubling_days) %>% mutate(area = "Days to duplicate cases"),
-  merged_data %>% select(date, country, growth.factor) %>% spread(country, growth.factor) %>% mutate(area = "Growth Factor")
-) 
-
-flourish_first_choices <- c(
-  which(names(flourish_data) == "date"),
-  which(names(flourish_data) == "Italy"),
-  which(names(flourish_data) == "Korea, South"),
-  which(names(flourish_data) == "Switzerland")
+merged_data <- left_join(
+  left_join(confirmed, deaths, by = c("country", "date")),
+  recovered, by = c("country", "date")
 )
 
-flourish_data[, c(flourish_first_choices, setdiff(1:ncol(flourish_data), flourish_first_choices))] %>%
-  write.csv("C:/Users/wolfs25/Downloads/flourish_try.csv")
 
 plot_ly(
   data = merged_data,

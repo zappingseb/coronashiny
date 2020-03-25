@@ -105,11 +105,11 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     if (!is.null(input$countries)) {
       confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
       deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value)
-      recovered <- new_data_gen(data_recovered(), input$countries, FALSE) %>% rename(recovered = value)
+      recovered <- data_recovered() %>% filter(country %in% input$countries)
     } else {
       confirmed_cases <- new_data_gen(data_confirmed(), default_countries)
       deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value)
-      recovered <- new_data_gen(data_recovered(), default_countries, FALSE) %>% rename(recovered = value)
+      recovered <- data_recovered() %>% filter(country %in% default_countries)
     }
     
     merged_data <- left_join(

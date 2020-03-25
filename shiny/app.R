@@ -158,25 +158,24 @@ server <- function(input, output, session) {
   #---- CSSE data ----
   data_confirmed <- reactive({
     git_pull()
-    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Confirmed.csv"))
+    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
   })
 
   data_death <- reactive({
     git_pull()
-    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Deaths.csv"))
+    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"))
   })
   data_recovered <- reactive({
     git_pull()
-    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv"))
+    generate_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
   })
-  
-  
   
   all_data <- reactive({
     confirmed <- new_data_gen(data_confirmed(), data_confirmed()$Country.Region)
     deaths <- new_data_gen(data_death(), data_death()$Country.Region, FALSE) %>%
       rename(deaths = value)
-    recovered <- new_data_gen(data_recovered(), data_recovered()$Country.Region, FALSE) %>% rename(recovered = value)
+    recovered <- data_recovered()
+      # %>% replace_na(list("recovered" = max(recovered, na.rm = TRUE)))
     left_join(
       left_join(confirmed, deaths, by = c("country", "date")),
       recovered, by = c("country", "date")
