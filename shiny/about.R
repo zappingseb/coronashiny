@@ -28,6 +28,10 @@ aboutUI <- function(id) {
                                       p("My Monkey and Graph Count did some work")          
                       )
                     ),
+                    p(a(href="https://github.com/zappingseb/coronashiny",
+                        img(src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/91/Octicons-mark-github.svg/600px-Octicons-mark-github.svg.png",
+                            width = 60)
+                    )),
                     p(a(href="https://github.com/zappingseb/coronashiny", "All code for this project"), "can be found on github")
                     
     )

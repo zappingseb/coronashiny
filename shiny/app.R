@@ -18,6 +18,7 @@ library(DT)
 library(RColorBrewer)
 library(shinyjs)
 library(covid19italy)
+library(leaflet.extras)
 
 source("data_gen.R")
 source("about.R")
@@ -25,6 +26,7 @@ source("timeline_charts.R")
 source("dt_table.R")
 source("italy.R")
 source("fun.R")
+source("map.R")
 
 #---- population data ----
 population_data <- read.csv("./population-figures-by-country-csv_csv.csv")
@@ -49,7 +51,7 @@ ui <- material_page(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
     tags$script(type = "text/javascript", src = "jquery_browser.js")
   ),
-  
+  tags$head(includeHTML("google-analytics.html")),
   #---- material_side_nav ----
   material_side_nav(
     fixed = TRUE, 
@@ -59,13 +61,14 @@ ui <- material_page(
     # Place side-nav tabs within side-nav
     material_side_nav_tabs(
       side_nav_tabs = c(
+        "WorldMap" = "map",
         "All Countries Table" = "all_countries",
         "Timeline Charts" = "housing_prices",
         "Italy Charts" = "italy",
         "Fun facts" = "fun",
         "About" = "about"
       ),
-      icons = c("format_list_bulleted", "insert_chart", "local_pizza", "toys", "info_outline")
+      icons = c("map", "format_list_bulleted", "insert_chart", "local_pizza", "toys", "info_outline")
     ),
     div(style="height:50px"),
     material_card(
@@ -74,6 +77,10 @@ ui <- material_page(
     )
   ),
   #---- UI objects ----
+  material_side_nav_tab_content(
+    side_nav_tab_id = "map",
+    mapUI("map_module")
+  ),
   material_side_nav_tab_content(
     side_nav_tab_id = "all_countries",
     dt_tableUI("dt_table_module")
@@ -181,7 +188,17 @@ server <- function(input, output, session) {
       recovered, by = c("country", "date")
     )
   })
- 
+  #---- Map data ----
+  
+  map_data <- reactive({
+    git_pull()
+    generate_all_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
+  })
+  
+  all_dates <- reactive({
+    map_data()$date %>% unique() %>% as.POSIXct(origin = "1970-01-01")
+  })
+  
   #---- last mod ----
   output$last_modified <- renderUI({
     git_pull()
@@ -199,6 +216,7 @@ server <- function(input, output, session) {
   callModule(dt_table, "dt_table_module", all_data = all_data, population_data_short = population_data_short)
   callModule(italy, "italy_module", italy_data = italy_data)
   callModule(fun, "fun_module", fun_data = fun_data)
+  callModule(map, "map_module", map_data = map_data, all_dates = all_dates)
 }
 
 # Run the application 

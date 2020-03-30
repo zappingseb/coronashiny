@@ -28,7 +28,15 @@ if (dir.exists("COVID-19")) {
 } else {
   system("git clone https://github.com/CSSEGISandData/COVID-19.git", timeout = 1000)
 }
-covid_data <- per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
+covid_global_confirmed <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv")
+
+leaflet(covid_global_confirmed %>% select(Lat, Long, X3.24.20) %>% head %>% rename(val = X3.24.20)) %>%  addTiles() %>%
+  addWebGLHeatmap(lng=~Long, lat=~Lat, size = 60000)
+leaflet(covid_global_confirmed %>% select(Lat, Long, X3.24.20) %>% head %>% rename(val = X3.24.20)) %>%
+  addProviderTiles(providers$Thunderforest.TransportDark) %>%
+  addWebGLHeatmap(lng=~Long, lat=~Lat, intensity = ~val)
+
+covid_data <- per_country_data(covid_global_confirmed)
 covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
 
 default_countries <- covid_data$Country.Region

@@ -66,6 +66,144 @@ generate_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid
     ungroup()
   return(recovered)
 }
+
+generate_all_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid_19_daily_reports") {
+  
+  recovered <- do.call(rbind,
+                       lapply(list.files(folder, pattern = ".csv", full.names = T), function(x){
+                         
+                         data_day <- read.csv(x)
+                         names(data_day)[grepl("Province", names(data_day))] <- "Province.State"
+                         names(data_day)[grepl("Country", names(data_day))] <- "Country.Region"
+                         names(data_day)[grepl("Last", names(data_day))] <- "Last.Update"
+                         date_match <- stringr::str_match(string = x, pattern = "(\\d\\d)\\-(\\d\\d)\\-(\\d\\d\\d\\d)")
+                         if ("Combined_Key" %in% names(data_day)) {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered, Long_, Lat, Combined_Key
+                           )
+                           data.frame(
+                             date = as.Date(paste0(date_match[,4], "-", date_match[,2], "-", date_match[,3])),
+                             country = data_day$Country.Region,
+                             province = data_day$Province.State,
+                             recovered = data_day$Recovered,
+                             deaths = data_day$Deaths,
+                             confirmed = data_day$Confirmed,
+                             Longitude = data_day$Long_,
+                             Latitude = data_day$Lat,
+                             Combined_Key = data_day$Combined_Key
+                           )
+                         } else if ("Longitude" %in% names(data_day)) {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered, Longitude, Latitude
+                           )
+                           data.frame(
+                             date = as.Date(paste0(date_match[,4], "-", date_match[,2], "-", date_match[,3])),
+                             country = data_day$Country.Region,
+                             province = data_day$Province.State,
+                             recovered = data_day$Recovered,
+                             deaths = data_day$Deaths,
+                             confirmed = data_day$Confirmed,
+                             Longitude = data_day$Longitude,
+                             Latitude = data_day$Latitude,
+                             Combined_Key = NA
+                           )
+                           
+                         } else {
+                           
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
+                           )
+                           data.frame(
+                             date = as.Date(paste0(date_match[,4], "-", date_match[,2], "-", date_match[,3])),
+                             country = data_day$Country.Region,
+                             province = data_day$Province.State,
+                             recovered = data_day$Recovered,
+                             deaths = data_day$Deaths,
+                             confirmed = data_day$Confirmed,
+                             Longitude = NA,
+                             Latitude = NA,
+                             Combined_Key = NA
+                           )
+                         }
+                       }))
+  recovered[which(recovered$date == "2020-01-22"), ] <- recovered[which(recovered$date == "2020-01-22"), ] %>%
+    tidyr::replace_na(list(recovered = 0, confirmed = 0, deaths = 0))
+  
+  
+  
+  all_data <- recovered %>% 
+    mutate(country = case_when(
+      as.character(country) == "Mainland China" ~ "China",
+      TRUE ~ as.character(country)
+    ),
+    Combined_Key = case_when(
+      province == "" & is.na(Combined_Key) ~ as.character(country),
+      is.na(Combined_Key) ~ paste(as.character(province), as.character(country), sep = ", "),
+      TRUE ~ as.character(Combined_Key)
+    )
+    ) %>%
+    group_by(country, province) %>%
+    mutate(recovered = case_when(
+      is.na(recovered) ~ lag(recovered),
+      TRUE ~ recovered
+    ),
+    confirmed = case_when(
+      is.na(confirmed) ~ lag(confirmed),
+      TRUE ~ confirmed
+    ),
+    deaths = case_when(
+      is.na(deaths) ~ lag(deaths),
+      TRUE ~ deaths
+    )
+    
+    ) %>%
+    ungroup() %>% mutate(active = confirmed - deaths - recovered)
+  
+  
+  long_lat_old <- read.csv(file.path(folder, "03-02-2020.csv")) %>%
+    rename(province = Province.State, country = Country.Region, Lat = Latitude, Long = Longitude) %>%
+    mutate(Combined_Key = case_when(
+      province == "" ~ as.character(country),
+      TRUE ~ paste(as.character(province), as.character(country), sep = ", ")
+    )
+             ) %>%
+    select(province, country, Long, Lat, Combined_Key)
+  
+  long_lat_old2 <- read.csv(file.path(folder, "03-08-2020.csv")) %>%
+    rename(province = Province.State, country = Country.Region, Lat = Latitude, Long = Longitude) %>%
+    mutate(Combined_Key = case_when(
+      province == "" ~ as.character(country),
+      TRUE ~ paste(as.character(province), as.character(country), sep = ", ")
+    )
+             ) %>%
+    select(province, country, Long, Lat, Combined_Key)
+  
+  long_lat_old3 <- read.csv(file.path(folder, "03-11-2020.csv")) %>%
+    rename(province = Province.State, country = Country.Region, Lat = Latitude, Long = Longitude) %>%
+    mutate(Combined_Key = case_when(
+      province == "" ~ as.character(country),
+      TRUE ~ paste(as.character(province), as.character(country), sep = ", ")
+    )
+             ) %>%
+    select(province, country, Long, Lat, Combined_Key)
+  
+  all_files <- list.files(folder, pattern = ".csv", full.names = T)
+  long_lat <- read.csv(all_files[length(all_files)])
+  names(long_lat)[grepl("Province", names(long_lat))] <- "Province.State"
+  names(long_lat)[grepl("Country", names(long_lat))] <- "Country.Region"
+  names(long_lat)[grepl("Long", names(long_lat))] <- "Longitude"
+  names(long_lat)[grepl("Lat", names(long_lat))] <- "Latitude"
+  long_lat <- long_lat %>%
+    rename(province = Province.State, country = Country.Region, Long = Longitude, Lat = Latitude) %>%
+    select(province, country, Long, Lat, Combined_Key)
+  
+  long_lat <- rbind(long_lat, long_lat_old, long_lat_old2, long_lat_old3)
+  long_lat <- long_lat[!duplicated(long_lat$Combined_Key), ]
+  
+  return(left_join(all_data, long_lat, by = c("Combined_Key")))
+  
+}
+
 new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE) {
   
   start_date <- str_replace(names(covid_data)[2], "X", "0") %>%
