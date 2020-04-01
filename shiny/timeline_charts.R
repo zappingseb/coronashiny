@@ -37,6 +37,20 @@ timeline_chartsUI <- function(id) {
       )
     ),
     material_row(
+      material_card(title = "Active per running day:",
+                    tagList(
+                      p("After having 200 patients a country starts to appear in this chart. After this day at each day the active patients
+                        are counted.")
+                    )
+      )
+    ),
+    material_row(
+      material_column(
+        width = 12,
+        plotlyOutput(outputId = ns("running"), width = "100%")
+      )
+    ),
+    material_row(
       material_card(title = "Doubling days:",
                     tagList(
                       p("For each day the number of days it would take to double the number of confirmed cases is shown."),
@@ -97,9 +111,9 @@ timeline_chartsUI <- function(id) {
   )
 }
 
-timeline_charts <- function(input, output, session, data_death = NULL, data_confirmed = NULL, data_recovered = NULL) {
+timeline_charts <- function(input, output, session, data_death = NULL, data_confirmed = NULL, data_recovered = NULL, map_data = NULL) {
   
-  default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)")
+  default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)", "US")
   
   plot_data <- reactive({
     if (!is.null(input$countries)) {
@@ -117,6 +131,26 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       recovered, by = c("country", "date")
     ) %>% add_mortality
     return(merged_data)
+  })
+  
+  running_day_data <- reactive({
+    
+    country_names <- if(is.null(input$countries)){
+      default_countries
+    } else {
+      input$countries
+    }
+    plot_data()  %>%
+      mutate(
+        date_greater_200 = case_when(
+          as.numeric(value) > 200 ~ 1,
+          TRUE ~ 0
+        )
+      ) %>%
+      filter(date_greater_200 == 1) %>%
+      group_by(country) %>%
+      mutate(running_day = row_number()) %>%
+      ungroup()
   })
   
   output$selector = renderUI({
@@ -273,4 +307,47 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     
   })
   
+  output$running <- renderPlotly({
+    
+    plot_data_intern2 <- running_day_data()
+    
+    data_for_country <- spread(plot_data_intern2, key = country, value = active)
+    palette_col <- viridisLite::viridis(n = length(unique(plot_data_intern2$country)))
+    
+    plot_first <- plot_ly(
+      data = plot_data_intern2,
+      hoverinfo = "",
+      type = "scatter",
+      mode = "lines"
+    ) 
+    
+    for (country_name in unique(plot_data_intern2$country)) {
+      simple_data <- data_for_country[, c("running_day", country_name)]
+      simple_data <- simple_data[!is.na(simple_data[, country_name]), ]
+      names(simple_data)[which(names(simple_data) == country_name)] <- "active"
+      plot_first <- plot_first %>% add_trace(
+        data = simple_data,
+        x = ~as.numeric(running_day),
+        y = ~as.numeric(active),
+        name = country_name,
+        type = 'scatter',
+        text="",
+        mode = "lines",
+        line = list(color = palette_col[which(unique(plot_data_intern2$country) == country_name)])
+      )
+      
+    }
+    
+    plot_first %>%
+      layout(
+        xaxis = list(
+          title = "Running Day"
+        ),
+        yaxis = list(
+          title = "Confirmed (Total cases)",
+          range = c(0, max(as.numeric(plot_data_intern2$value), na.rm=TRUE) + 0.3)
+        )
+      )
+    
+  })
 }

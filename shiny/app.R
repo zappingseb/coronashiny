@@ -19,6 +19,7 @@ library(RColorBrewer)
 library(shinyjs)
 library(covid19italy)
 library(leaflet.extras)
+library(scales)
 
 source("data_gen.R")
 source("about.R")
@@ -212,7 +213,12 @@ server <- function(input, output, session) {
     )
   })
   callModule(about, "about_module")
-  callModule(timeline_charts, "timeline_charts_module", data_death = data_death, data_confirmed = data_confirmed, data_recovered = data_recovered)
+  callModule(timeline_charts, "timeline_charts_module",
+             data_death = data_death,
+             data_confirmed = data_confirmed,
+             data_recovered = data_recovered,
+             map_data = map_data
+             )
   callModule(dt_table, "dt_table_module", all_data = all_data, population_data_short = population_data_short)
   callModule(italy, "italy_module", italy_data = italy_data)
   callModule(fun, "fun_module", fun_data = fun_data)

@@ -133,3 +133,26 @@ datatable(df,
                                     )
               )
   )
+
+daily_data <- generate_all_from_daily("./shiny/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
+
+plot_test_data <- daily_data %>%
+  group_by(country.x, date) %>%
+  summarise(
+    confirmed_sum = sum(confirmed, na.rm = TRUE),
+    deaths_sum = sum(deaths, na.rm = TRUE),
+    recovered_sum = sum(recovered, na.rm = TRUE),
+    active_sum = sum(active, na.rm = TRUE)
+  ) %>%
+  mutate(
+    date_greater_200 = case_when(
+      confirmed_sum > 200 ~ 1,
+      TRUE ~ 0
+    )
+  ) %>%
+  filter(date_greater_200 == 1) %>%
+  mutate(running_day = row_number()) %>%
+  filter(country.x %in% c("US", "Germany", "France", "Estonia"))
+  
+ggplot(plot_test_data) +
+  geom_line(aes(x = running_day, y = confirmed_sum, color = country.x))
