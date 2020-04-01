@@ -68,7 +68,7 @@ italy <- function(input, output, session, italy_data) {
   output$all_cases <- renderPlotly({
     plot_ly(data = italy_data()$total,
             x = ~ date,
-            y = ~total_currently_positive, 
+            y = ~cumulative_positive_cases, 
             name = 'Active', 
             line = list(color = colpal[3]),
             type = 'scatter',
@@ -90,13 +90,13 @@ italy <- function(input, output, session, italy_data) {
     italy_data()$region %>% 
       mutate(date = as.Date(date)) %>%
       filter(date == max(date)) %>% 
-      select(region_name, total_currently_positive, recovered, death, total_positive_cases) %>%
-      arrange(-total_positive_cases) %>%
+      select(region_name, cumulative_positive_cases, recovered, death) %>%
+      arrange(-cumulative_positive_cases) %>%
       mutate(region = factor(region_name, levels = region_name)) %>%
       plot_ly(y = ~ region, 
-              x = ~ total_currently_positive, 
+              x = ~ cumulative_positive_cases, 
               orientation = 'h',
-              text =  ~ total_currently_positive,
+              text =  ~ cumulative_positive_cases,
               textposition = 'auto',
               type = "bar", 
               name = "Active",

@@ -136,6 +136,7 @@ datatable(df,
 
 daily_data <- generate_all_from_daily("./shiny/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
 
+#------------- Test 200 day -------------------------
 plot_test_data <- daily_data %>%
   group_by(country.x, date) %>%
   summarise(
@@ -156,3 +157,37 @@ plot_test_data <- daily_data %>%
   
 ggplot(plot_test_data) +
   geom_line(aes(x = running_day, y = confirmed_sum, color = country.x))
+
+#------------- Test italy -------------------------
+if (dir.exists("covid19Italy")) {
+  setwd("covid19Italy")
+  system("git pull")
+  setwd("..")
+} else {
+  
+  system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 1000)
+}
+
+italy_data <- list(
+  total = read.csv("covid19Italy/csv/italy_total.csv"),
+  region = read.csv("covid19Italy/csv/italy_region.csv"),
+  province = read.csv("covid19Italy/csv/italy_province.csv")
+)
+plot_ly(data = italy_data$total,
+        x = ~ date,
+        y = ~cumulative_positive_cases, 
+        name = 'Active', 
+        line = list(color = colpal[3]),
+        type = 'scatter',
+        mode = 'lines', 
+        stackgroup = 'one') %>%
+  add_trace( y = ~ death, 
+             name = "Death",
+             line = list(color = colpal[2])) %>%
+  add_trace(y = ~recovered, 
+            name = 'Recovered', 
+            line = list(color = colpal[1])) %>%
+  layout(title = "Italy - Distribution of Covid19 Cases",
+         legend = list(x = 0.1, y = 0.9),
+         yaxis = list(title = "Number of Cases"),
+         xaxis = list(title = "Source: Italy Department of Civil Protection"))

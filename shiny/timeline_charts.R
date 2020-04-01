@@ -115,6 +115,16 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
   
   default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)", "US")
   
+  output$selector = renderUI({
+    tagList(
+      selectInput(inputId = session$ns('countries'),
+                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
+                  selected = default_countries, multiple = TRUE),
+      div(style="clear:both;height:20px;")
+    )
+  })
+  
+  # ---- data plot ----
   plot_data <- reactive({
     if (!is.null(input$countries)) {
       confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
@@ -132,7 +142,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     ) %>% add_mortality
     return(merged_data)
   })
-  
+  # ---- data running ----
   running_day_data <- reactive({
     
     country_names <- if(is.null(input$countries)){
@@ -153,15 +163,8 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       ungroup()
   })
   
-  output$selector = renderUI({
-    tagList(
-      selectInput(inputId = session$ns('countries'),
-                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
-                  selected = default_countries, multiple = TRUE),
-      div(style="clear:both;height:20px;")
-    )
-  })
   
+  # ---- plotLyGroup ----
   plotly_group <- reactive({
     
     plot_data_intern2 <- plot_data()
@@ -184,7 +187,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       )
     )
   })
-  
+  # ---- confirmed ----
   output$distPlot <- renderPlotly({
     
     plt_out <- plotly_group() %>%
@@ -207,6 +210,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     material_spinner_hide(session, output_id = "distPlot")
     return(plt_out)
   })
+  # ---- growthFactor ----
   output$grouwthFactor <- renderPlotly({
     
     # generate bins based on input$bins from ui.R
@@ -230,7 +234,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       )
     
   })
-  
+  # ---- Brachart Doubling ----
   output$DoublingDays <- renderPlotly({
     
     plotly_group() %>%
@@ -250,6 +254,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       )
     
   })
+  # ---- mortality ----
   output$mortality <- renderPlotly({
     
     plotly_group() %>%
@@ -269,7 +274,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       )
     
   })
-  
+  # ---- active ----
   output$active <- renderPlotly({
     plotly_group() %>%
       add_trace(x = ~date,
@@ -288,6 +293,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
       )
     
   })
+  # ---- recovery ----
   output$recovery <- renderPlotly({
     plotly_group() %>%
       add_trace(x = ~date,
@@ -307,6 +313,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     
   })
   
+  # ---- running ----
   output$running <- renderPlotly({
     
     plot_data_intern2 <- running_day_data()
@@ -344,7 +351,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
           title = "Running Day"
         ),
         yaxis = list(
-          title = "Confirmed (Total cases)",
+          title = "Active (Total cases)",
           range = c(0, max(as.numeric(plot_data_intern2$value), na.rm=TRUE) + 0.3)
         )
       )
