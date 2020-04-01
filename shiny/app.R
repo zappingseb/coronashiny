@@ -18,6 +18,7 @@ library(DT)
 library(RColorBrewer)
 library(shinyjs)
 library(covid19italy)
+library(leaflet)
 library(leaflet.extras)
 library(scales)
 

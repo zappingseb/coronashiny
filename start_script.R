@@ -7,7 +7,8 @@ library(ggplot2)
 library(plotly)
 library(RColorBrewer)
 library(DT)
-
+library(leaflet)
+library(leaflet.extras)
 
 
 population_data <- read.csv("./shiny/population-figures-by-country-csv_csv.csv")

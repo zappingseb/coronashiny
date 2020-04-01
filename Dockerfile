@@ -9,6 +9,8 @@ RUN install2.r --error \
     rlang \
     stringr \
     plotly \
+    leaflet \
+    leaflet.extras \
     RColorBrewer \
     ## clean up
     && rm -rf /tmp/downloaded_packages/ /tmp/*.rds
