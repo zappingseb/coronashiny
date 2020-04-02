@@ -163,7 +163,7 @@ if (dir.exists("covid19Italy")) {
   setwd("..")
 } else {
   
-  system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 1000)
+  system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 5000)
 }
 
 italy_data <- list(
