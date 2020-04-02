@@ -126,6 +126,8 @@ generate_all_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_c
                            )
                          }
                        }))
+  
+  
   recovered[which(recovered$date == "2020-01-22"), ] <- recovered[which(recovered$date == "2020-01-22"), ] %>%
     tidyr::replace_na(list(recovered = 0, confirmed = 0, deaths = 0))
   

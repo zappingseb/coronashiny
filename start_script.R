@@ -33,9 +33,6 @@ covid_global_confirmed <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_
 
 leaflet(covid_global_confirmed %>% select(Lat, Long, X3.24.20) %>% head %>% rename(val = X3.24.20)) %>%  addTiles() %>%
   addWebGLHeatmap(lng=~Long, lat=~Lat, size = 60000)
-leaflet(covid_global_confirmed %>% select(Lat, Long, X3.24.20) %>% head %>% rename(val = X3.24.20)) %>%
-  addProviderTiles(providers$Thunderforest.TransportDark) %>%
-  addWebGLHeatmap(lng=~Long, lat=~Lat, intensity = ~val)
 
 covid_data <- per_country_data(covid_global_confirmed)
 covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv")
@@ -135,7 +132,7 @@ datatable(df,
               )
   )
 
-daily_data <- generate_all_from_daily("./shiny/COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
+daily_data <- generate_all_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
 
 #------------- Test 200 day -------------------------
 plot_test_data <- daily_data %>%
@@ -174,6 +171,7 @@ italy_data <- list(
   region = read.csv("covid19Italy/csv/italy_region.csv"),
   province = read.csv("covid19Italy/csv/italy_province.csv")
 )
+colpal <- viridisLite::cividis(10)
 plot_ly(data = italy_data$total,
         x = ~ date,
         y = ~cumulative_positive_cases, 
@@ -192,3 +190,4 @@ plot_ly(data = italy_data$total,
          legend = list(x = 0.1, y = 0.9),
          yaxis = list(title = "Number of Cases"),
          xaxis = list(title = "Source: Italy Department of Civil Protection"))
+
