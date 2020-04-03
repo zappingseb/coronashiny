@@ -19,7 +19,9 @@ italyUI <- function(id){
       )
     ),
     material_row(
-      plotlyOutput(ns("all_cases"))
+      tagList(
+        plotlyOutput(ns("all_cases"))
+      )
     ),
     material_row(
       material_card(title = "Active Cases:",
@@ -87,7 +89,7 @@ italy <- function(input, output, session, italy_data) {
   })
   
   output$region <- renderPlotly({
-    italy_data()$region %>% 
+    outplot <- italy_data()$region %>% 
       mutate(date = as.Date(date)) %>%
       filter(date == max(date)) %>% 
       select(region_name, cumulative_positive_cases, recovered, death) %>%
@@ -124,5 +126,7 @@ italy <- function(input, output, session, italy_data) {
                t = 30,
                pad = 2
              ))
+    wait_hide(session)
+    outplot
   })
 }

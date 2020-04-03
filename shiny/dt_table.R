@@ -54,7 +54,6 @@ dt_table <- function(input, output, session, all_data = NULL, population_data_sh
     }
   })
   output$MaxDoublingTime <- DT::renderDataTable({
-    material_spinner_show(session, session$ns("MaxDoublingTime"))
     df <- key_factors(all_data(), population_data_short)
     brks_clrs_doubling_days <- breaks_colors(df$doubling_days, reverse = TRUE)
     brks_clrs_max_exponential_time <- breaks_colors(df$max_exponential_time)
@@ -106,7 +105,7 @@ dt_table <- function(input, output, session, all_data = NULL, population_data_sh
                   #                       )
                   # )
       )
-    material_spinner_hide(session, session$ns("MaxDoublingTime"))
+    wait_hide(session)
     return(dt_out)
   })
 }

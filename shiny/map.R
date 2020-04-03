@@ -1,18 +1,18 @@
 mapUI <- function(id){
   ns <- NS(id)
   tagList(
-    tags$script('$("#DataTables_Table_0").show()'),
     material_row(
       material_card(
         title = "Overview map - Active cases",
         tags$p("Please note: On 2019-03-23 the level of details changed for the USA. The explosion in cases you will see is due to changes
                in geographical details in ", tags$a(href = "https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data", "CSSE Date", target="_new"), " not to a real explosion of cases."),
+        
         uiOutput(ns("slider"))
       )
     ),
     material_row(
       material_column(width=12,
-                      leafletOutput(outputId = ns("outmap"), height = 540)
+                        leafletOutput(outputId = ns("outmap"), height = 540)
       )
     )
   )
@@ -23,7 +23,7 @@ map <- function(input, output, session, all_dates = NULL, map_data = NULL) {
   session$userData$showEx <- reactiveVal(TRUE)
   
   output$slider <- shiny::renderUI({
-    material_spinner_show(session, session$ns("outmap"))
+    
     div(style="width:85%;padding-left:7%;padding-right:7%",
       shiny::sliderInput(inputId = session$ns("datum"),
                          min = as.POSIXct("2020-02-01"),
@@ -38,7 +38,6 @@ map <- function(input, output, session, all_dates = NULL, map_data = NULL) {
   curr_date <- reactiveVal( as.character(Sys.Date() + 1))
   
   full_data <- reactive({
-    
     get_dat <- map_data()
     
     return(get_dat)
@@ -85,7 +84,7 @@ map <- function(input, output, session, all_dates = NULL, map_data = NULL) {
        color = col_pal(active)
        ) %>%
        arrange(active)
-     material_spinner_hide(session, session$ns("outmap"))
+     material_spinner_hide(session, session$ns("wait"))
      leafletProxy(mapId = "outmap") %>%
        clearGroup(curr_date()) %>%
        addCircles(data = data_for_display, lng = ~Long, lat = ~Lat,

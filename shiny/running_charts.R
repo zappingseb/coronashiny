@@ -17,7 +17,6 @@ running_chartsUI <- function(id) {
                     )
       )
     ),
-    div(id = ns("wait")),
     # ----- active_per_inhabitant ----
     material_row(
       material_card(title = "Active/100.000 inhabitants per running day:",
@@ -58,6 +57,19 @@ running_chartsUI <- function(id) {
       material_column(
         width = 12,
         plotlyOutput(outputId = ns("active"), width = "100%")
+      )
+    ),
+    material_row(
+      material_card(title = "New cases:",
+                    tagList(
+                      p("These are the new cases per country popping up on the running day.")
+                    )
+      )
+    ),
+    material_row(
+      material_column(
+        width = 12,
+        plotlyOutput(outputId = ns("new_cases"), width = "100%")
       )
     ),
     # ----- Barchart Doubling ----
@@ -102,14 +114,13 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
   #----- Timeline Data -----
   
   plot_data <- reactive({
-    material_spinner_show(session, session$ns("wait"))
     if (!is.null(input$countries)) {
       confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
-      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value)
+      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value, deaths_change = change)
       recovered <- data_recovered() %>% filter(country %in% input$countries)
     } else {
       confirmed_cases <- new_data_gen(data_confirmed(), default_countries)
-      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value)
+      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value, deaths_change = change)
       recovered <- data_recovered() %>% filter(country %in% default_countries)
     }
     
@@ -202,20 +213,24 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
     
   })
   
-  running_plot <- function(running_day_data, value, label = "Active (Total cases)"){
+  running_plot <- function(running_day_data, value, label = "Active (Total cases)", type = "lines"){
     plot_data_intern2 <- running_day_data()
     data_for_country <- spread(plot_data_intern2 %>%
                                  select(one_of("country", "running_day", value)),
                                key = "country",
                                value = value)
     palette_col <- viridisLite::viridis(n = length(unique(plot_data_intern2$country)))
-    
-    plot_first <- plot_ly(
-      hoverinfo = "",
-      type = "scatter",
-      mode = "lines"
-    ) 
-    
+    plot_first <- if (type == "lines") {
+      plot_ly(
+        hoverinfo = "",
+        type = "scatter",
+        mode = "lines"
+      ) 
+    } else {
+      plot_ly(
+        hoverinfo = ""
+      )
+    }
     for (country_name in unique(plot_data_intern2$country)) {
       simple_data <- data_for_country[, c("running_day", country_name)]
       
@@ -228,10 +243,14 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
         x = ~as.numeric(running_day),
         y = ~as.numeric(active),
         name = country_name,
-        type = 'scatter',
         text="",
-        mode = "lines",
-        line = list(color = palette_col[which(unique(plot_data_intern2$country) == country_name)])
+        type = if(type == "lines") NULL else type,
+        line = list(color = palette_col[which(unique(plot_data_intern2$country) == country_name)]),
+        marker = if(type != "lines") {
+          list(color = palette_col[which(unique(plot_data_intern2$country) == country_name)])
+        } else {
+            list()
+          }
       )
       
     }
@@ -251,25 +270,27 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
   # ---- active_per_inhabitant ----
   output$active_per_inhabitant <- renderPlotly({
     out_plot <- running_plot(running_day_data = running_day_data, value = "active_per_inhabitant")
-    material_spinner_hide(session, session$ns("wait"))
     out_plot
   })
   # ---- confirmed ----
   output$confirmed <- renderPlotly({
     out_plot <- running_plot(running_day_data = running_day_data, value = "value")
-    material_spinner_hide(session, session$ns("wait"))
     out_plot
   })
   # ---- active ----
   output$active <- renderPlotly({
     out_plot <- running_plot(running_day_data = running_day_data, value = "active")
-    material_spinner_hide(session, session$ns("wait"))
+    out_plot
+  })
+  # ---- new_cases ----
+  output$new_cases <- renderPlotly({
+    out_plot <- running_plot(running_day_data = running_day_data, value = "change", type = "bar")
     out_plot
   })
   # ---- mortality ----
   output$mortality <- renderPlotly({
     out_plot <- running_plot(running_day_data = running_day_data, value = "mortality", label = "Mortality in %")
-    material_spinner_hide(session, session$ns("wait"))
+    wait_hide(session)
     out_plot
   })
 }

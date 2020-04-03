@@ -27,3 +27,7 @@ background-color:#174763;
     display:none;
   }
 }
+
+nav .nav-wrapper{
+  padding-left: 1em;
+}

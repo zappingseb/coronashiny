@@ -37,6 +37,19 @@ timeline_chartsUI <- function(id) {
       )
     ),
     material_row(
+      material_card(title = "New cases:",
+                    tagList(
+                      p("These are the new cases per country popping up each day.")
+                    )
+      )
+    ),
+    material_row(
+      material_column(
+        width = 12,
+        plotlyOutput(outputId = ns("new_cases"), width = "100%")
+      )
+    ),
+    material_row(
       material_card(title = "Doubling days:",
                     tagList(
                       p("For each day the number of days it would take to double the number of confirmed cases is shown."),
@@ -107,11 +120,11 @@ timeline_charts <- function(input, output, session, data_confirmed = data_confir
   plot_data <- reactive({
     if (!is.null(input$countries)) {
       confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
-      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value)
+      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value, deaths_change = change)
       recovered <- data_recovered() %>% filter(country %in% input$countries)
     } else {
       confirmed_cases <- new_data_gen(data_confirmed(), default_countries)
-      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value)
+      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value, deaths_change = change)
       recovered <- data_recovered() %>% filter(country %in% default_countries)
     }
     
@@ -133,7 +146,6 @@ timeline_charts <- function(input, output, session, data_confirmed = data_confir
   # ---- plot_data_intern ----
   plot_data_intern <- reactive({
     
-      material_spinner_show(session, session$ns("distPlot"))
     if (!is.null(input$countries)){
       plot_data() %>% filter(country %in% input$countries)
     }else {
@@ -185,7 +197,6 @@ timeline_charts <- function(input, output, session, data_confirmed = data_confir
           range = c(0, max(as.numeric(plot_data_intern()$value), na.rm = TRUE) + 1)
         )
       )
-    material_spinner_hide(session, session$ns("distPlot"))
     return(plt_out)
   })
   # ---- growthFactor ----
@@ -290,5 +301,24 @@ timeline_charts <- function(input, output, session, data_confirmed = data_confir
       )
     
   })
-  
+  # ---- new_cases ----
+  output$new_cases <- renderPlotly({
+    
+    plt_out <- plotly_group() %>%
+      add_trace(x = ~date,
+                y = ~change,
+                type = 'bar',
+                name = 'new cases') %>%
+      layout(
+        xaxis = list(
+          title = "Date"
+        ),
+        yaxis = list(
+          title = "New cases",
+          range = c(0, max(as.numeric(plot_data_intern()$doubling_days), na.rm = T) + 0.5)
+        )
+      )
+    wait_hide(session)
+    return(plt_out)
+  })
 }

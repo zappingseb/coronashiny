@@ -242,7 +242,12 @@ new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE)
         mutate(value = case_when(
           is.na(value) ~ lag(value),
           TRUE ~ value
-        )) %>% ungroup()
+          ),
+          change = case_when(
+            !is.na(lag(as.numeric(value))) ~ abs(as.numeric(value) - lag(as.numeric(value))),
+            TRUE ~ 0
+          )
+        ) %>% ungroup()
     )
   } else {
     return(
@@ -253,7 +258,12 @@ new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE)
         mutate(value = case_when(
           is.na(value) ~ lag(value),
           TRUE ~ value
-        )) %>% ungroup()
+          ),
+          change = case_when(
+            !is.na(lag(as.numeric(value))) ~ abs(as.numeric(value) - lag(as.numeric(value))),
+            TRUE ~ 0
+          )
+        ) %>% ungroup()
     )
   }
 }
@@ -368,4 +378,13 @@ add_mortality <- function(dataset) {
            active = as.numeric(value) - ifelse(is.na(as.numeric(deaths)), 0, as.numeric(deaths)) - as.numeric(recovered)
            ) %>%
     replace_na(list("mortality" = 0, "active" = 0))
+}
+
+wait_show <- function(session) {
+  shinyjs::runjs("$('#wait').css('display', 'block');")
+  material_spinner_show(session,"wait")
+}
+wait_hide <- function(session) {
+  material_spinner_hide(session, "wait")
+  shinyjs::runjs("$('#wait').css('display', 'none');")
 }

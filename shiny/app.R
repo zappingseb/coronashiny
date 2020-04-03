@@ -43,19 +43,32 @@ population_data_short <- rbind(
   data.frame(Country = c("Taiwan", "China (only Hubei)"), Country_Code = c("TAI", "XXX"), Year_2016 = c(23780000, 58500000))
 )
 
+
+
 #---- !! UI !! ----
 # Define UI for application that draws a histogram
 ui <- material_page(
   nav_bar_color = "blue",
   
-  title = "COVID-19 data",
+  title = "COVID-19",
   shinyjs::useShinyjs(),
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
     tags$link(rel = "stylesheet", type = "text/css", href = "css/bootstrap.min.css"),
     tags$script(type = "text/javascript", src = "jquery_browser.js")
   ),
+  tags$head(tags$link(rel="shortcut icon", href="favicon.ico")),
   tags$head(includeHTML("google-analytics.html")),
+  div(id = "wait", style = "    position: fixed;
+    top: 0rem;
+      margin: auto;
+      height: 100px;
+      width: 100px;
+margin: 20% auto; /* Will not center vertically and won't work in IE6/7. */
+left: 0;
+      right: 0;
+      /* display: none; */
+      opacity: 1;"),
   #---- material_side_nav ----
   material_side_nav(
     fixed = TRUE, 
@@ -119,6 +132,11 @@ server <- function(input, output, session) {
   
   #---- git pull ----
   git_pull <- reactive({
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    
+    progress$set(message = "Updating CSSE data", value = 0.5)
+    wait_show(session)
     if (dir.exists("COVID-19")) {
       setwd("COVID-19")
       system("git pull")
@@ -127,9 +145,14 @@ server <- function(input, output, session) {
       
       system("git clone https://github.com/CSSEGISandData/COVID-19.git", timeout = 1000)
     }
+    wait_hide(session)
   })
   
   git_pull_italy <- reactive({
+    progress <- shiny::Progress$new()
+    on.exit(progress$close())
+    progress$set(message = "Updating Italy data", value = 0.5)
+    wait_show(session)
     if (dir.exists("covid19Italy")) {
       setwd("covid19Italy")
       system("git pull")
@@ -138,10 +161,12 @@ server <- function(input, output, session) {
       
       system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 1000)
     }
+    wait_hide(session)
   })
   #---- Italy data ----
   italy_data <- reactive({
     git_pull_italy()
+    wait_show(session)
     list(
       total = read.csv("covid19Italy/csv/italy_total.csv"),
       region = read.csv("covid19Italy/csv/italy_region.csv"),
@@ -158,6 +183,7 @@ server <- function(input, output, session) {
   #---- CSSE data ----
   data_confirmed <- reactive({
     git_pull()
+    wait_show(session)
     per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
   })
 
@@ -185,7 +211,10 @@ server <- function(input, output, session) {
   
   map_data <- reactive({
     git_pull()
-    generate_all_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
+    wait_show(session)
+    map_data <- generate_all_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
+    wait_hide(session)
+    return(map_data)
   })
   
   all_dates <- reactive({

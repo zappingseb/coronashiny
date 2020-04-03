@@ -156,15 +156,11 @@ plot_test_data <- daily_data %>%
 ggplot(plot_test_data) +
   geom_line(aes(x = running_day, y = confirmed_sum, color = country.x))
 
+
 #------------- Test italy -------------------------
-if (dir.exists("covid19Italy")) {
-  setwd("covid19Italy")
-  system("git pull")
-  setwd("..")
-} else {
+
   
-  system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 5000)
-}
+system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 5000)
 
 italy_data <- list(
   total = read.csv("covid19Italy/csv/italy_total.csv"),
