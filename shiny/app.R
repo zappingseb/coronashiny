@@ -25,6 +25,7 @@ library(scales)
 source("data_gen.R")
 source("about.R")
 source("timeline_charts.R")
+source("running_charts.R")
 source("dt_table.R")
 source("italy.R")
 source("fun.R")
@@ -51,6 +52,7 @@ ui <- material_page(
   shinyjs::useShinyjs(),
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+    tags$link(rel = "stylesheet", type = "text/css", href = "css/bootstrap.min.css"),
     tags$script(type = "text/javascript", src = "jquery_browser.js")
   ),
   tags$head(includeHTML("google-analytics.html")),
@@ -66,11 +68,12 @@ ui <- material_page(
         "WorldMap" = "map",
         "All Countries Table" = "all_countries",
         "Timeline Charts" = "housing_prices",
+        "Compare countries charts" = "running_charts",
         "Italy Charts" = "italy",
         "Fun facts" = "fun",
         "About" = "about"
       ),
-      icons = c("map", "format_list_bulleted", "insert_chart", "local_pizza", "toys", "info_outline")
+      icons = c("map", "format_list_bulleted", "insert_chart", "exposure", "local_pizza", "toys", "info_outline")
     ),
     div(style="height:50px"),
     material_card(
@@ -90,7 +93,10 @@ ui <- material_page(
   material_side_nav_tab_content(
     side_nav_tab_id = "housing_prices",
     timeline_chartsUI("timeline_charts_module")
-        
+  ),
+  material_side_nav_tab_content(
+    side_nav_tab_id = "running_charts",
+    running_chartsUI("running_charts_module")
   ),
   material_side_nav_tab_content(
     side_nav_tab_id = "italy",
@@ -103,22 +109,7 @@ ui <- material_page(
   material_side_nav_tab_content(
     side_nav_tab_id = "about",
     aboutUI("about_module")
-  ),
-  tags$script("
-              $('a.waves-effect').on('click', function (e) {
-  if($('.shiny-material-side-nav-tab.active').attr('id') == 'all_countries_tab_id'){
-    $('#dt_table_module-MaxDoublingTime thead').show()
-  } else {
-    $('#dt_table_module-MaxDoublingTime thead').hide()
-  };
-
-});
-
-// $('.sidenav-close').click(function() {
-//     $('.sidenav').css('transform','');
-//    $('.sidenav-overlay').hide();
-//  })
-              ")
+  )
  
 )
 
@@ -215,10 +206,17 @@ server <- function(input, output, session) {
   })
   callModule(about, "about_module")
   callModule(timeline_charts, "timeline_charts_module",
-             data_death = data_death,
-             data_confirmed = data_confirmed,
              data_recovered = data_recovered,
+             data_confirmed = data_confirmed,
+             data_death = data_death,
              map_data = map_data
+             )
+  callModule(running_charts, "running_charts_module",
+             data_recovered = data_recovered,
+             data_confirmed = data_confirmed,
+             data_death = data_death,
+             map_data = map_data,
+             population_data = population_data_short
              )
   callModule(dt_table, "dt_table_module", all_data = all_data, population_data_short = population_data_short)
   callModule(italy, "italy_module", italy_data = italy_data)

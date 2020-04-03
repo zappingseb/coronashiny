@@ -347,8 +347,7 @@ key_factors <- function(covid_data_long, population_data) {
               select(doubling_days, still_exponential, value, deaths, recovered)
             ) %>%
     select(-country1) %>%
-    rename(Country = country) %>%
-    dplyr::arrange(doubling_days)
+    rename(Country = country)
   
   factor_data <- left_join(factor_data, population_data, by = "Country") %>% 
     filter(!is.na(value)) %>%
@@ -358,7 +357,8 @@ key_factors <- function(covid_data_long, population_data) {
            mortality_rate = round(100 * as.numeric(deaths)/(as.numeric(value)), 2),
            active = as.numeric(value) - as.numeric(deaths) - as.numeric(recovered)
            ) %>%
-    select(-Country_Code)
+    select(-Country_Code) %>%
+    dplyr::arrange(-per_100000)
   return(factor_data)
 }
 

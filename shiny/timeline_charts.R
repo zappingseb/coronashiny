@@ -37,20 +37,6 @@ timeline_chartsUI <- function(id) {
       )
     ),
     material_row(
-      material_card(title = "Active per running day:",
-                    tagList(
-                      p("After having 200 patients a country starts to appear in this chart. After this day at each day the active patients
-                        are counted.")
-                    )
-      )
-    ),
-    material_row(
-      material_column(
-        width = 12,
-        plotlyOutput(outputId = ns("running"), width = "100%")
-      )
-    ),
-    material_row(
       material_card(title = "Doubling days:",
                     tagList(
                       p("For each day the number of days it would take to double the number of confirmed cases is shown."),
@@ -111,20 +97,13 @@ timeline_chartsUI <- function(id) {
   )
 }
 
-timeline_charts <- function(input, output, session, data_death = NULL, data_confirmed = NULL, data_recovered = NULL, map_data = NULL) {
+timeline_charts <- function(input, output, session, data_confirmed = data_confirmed, data_death = data_death, data_recovered = data_recovered, map_data = map_data) {
   
   default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)", "US")
   
-  output$selector = renderUI({
-    tagList(
-      selectInput(inputId = session$ns('countries'),
-                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
-                  selected = default_countries, multiple = TRUE),
-      div(style="clear:both;height:20px;")
-    )
-  })
   
-  # ---- data plot ----
+  #----- Timeline Data -----
+  
   plot_data <- reactive({
     if (!is.null(input$countries)) {
       confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
@@ -142,32 +121,31 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
     ) %>% add_mortality
     return(merged_data)
   })
-  # ---- data running ----
-  running_day_data <- reactive({
+  
+  output$selector = renderUI({
+    tagList(
+      selectInput(inputId = session$ns('countries'),
+                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
+                  selected = default_countries, multiple = TRUE),
+      div(style="clear:both;height:20px;")
+    )
+  })
+  # ---- plot_data_intern ----
+  plot_data_intern <- reactive({
     
-    country_names <- if(is.null(input$countries)){
-      default_countries
-    } else {
-      input$countries
+      material_spinner_show(session, session$ns("distPlot"))
+    if (!is.null(input$countries)){
+      plot_data() %>% filter(country %in% input$countries)
+    }else {
+      plot_data() %>% filter(country %in% default_countries)
     }
-    plot_data()  %>%
-      mutate(
-        date_greater_200 = case_when(
-          as.numeric(value) > 200 ~ 1,
-          TRUE ~ 0
-        )
-      ) %>%
-      filter(date_greater_200 == 1) %>%
-      group_by(country) %>%
-      mutate(running_day = row_number()) %>%
-      ungroup()
   })
   
   
   # ---- plotLyGroup ----
   plotly_group <- reactive({
     
-    plot_data_intern2 <- plot_data()
+    plot_data_intern2 <- plot_data_intern()
     # generate bins based on input$bins from ui.R
     
     plot_ly(
@@ -204,10 +182,10 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         ),
         yaxis = list(
           title = "Total cases",
-          range = c(0, max(as.numeric(plot_data()$value), na.rm = TRUE) + 1)
+          range = c(0, max(as.numeric(plot_data_intern()$value), na.rm = TRUE) + 1)
         )
       )
-    material_spinner_hide(session, output_id = "distPlot")
+    material_spinner_hide(session, session$ns("distPlot"))
     return(plt_out)
   })
   # ---- growthFactor ----
@@ -229,7 +207,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         ),
         yaxis = list(
           title = "Growth Rate",
-          range = c(0, max(as.numeric(plot_data()$growth.factor), na.rm = T) + 0.5)
+          range = c(0, max(as.numeric(plot_data_intern()$growth.factor), na.rm = T) + 0.5)
         )
       )
     
@@ -249,7 +227,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         yaxis = list(
           type = "log",
           title = "Doubling Days",
-          range = c(0, max(as.numeric(plot_data()$doubling_days), na.rm = T) + 0.5)
+          range = c(0, max(as.numeric(plot_data_intern()$doubling_days), na.rm = T) + 0.5)
         )
       )
     
@@ -269,7 +247,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         ),
         yaxis = list(
           title = "mortality (%)",
-          range = c(0, max(plot_data()$mortality, na.rm=TRUE) + 0.3)
+          range = c(0, max(plot_data_intern()$mortality, na.rm=TRUE) + 0.3)
         )
       )
     
@@ -288,7 +266,7 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         ),
         yaxis = list(
           title = "Active (Total cases)",
-          range = c(0, max(as.numeric(plot_data()$active), na.rm=TRUE) + 0.3)
+          range = c(0, max(as.numeric(plot_data_intern()$active), na.rm=TRUE) + 0.3)
         )
       )
     
@@ -307,54 +285,10 @@ timeline_charts <- function(input, output, session, data_death = NULL, data_conf
         ),
         yaxis = list(
           title = "recovered (Total cases)",
-          range = c(0, max(as.numeric(plot_data()$recovered), na.rm=TRUE) + 0.3)
+          range = c(0, max(as.numeric(plot_data_intern()$recovered), na.rm=TRUE) + 0.3)
         )
       )
     
   })
   
-  # ---- running ----
-  output$running <- renderPlotly({
-    
-    plot_data_intern2 <- running_day_data()
-    
-    data_for_country <- spread(plot_data_intern2, key = country, value = active)
-    palette_col <- viridisLite::viridis(n = length(unique(plot_data_intern2$country)))
-    
-    plot_first <- plot_ly(
-      data = plot_data_intern2,
-      hoverinfo = "",
-      type = "scatter",
-      mode = "lines"
-    ) 
-    
-    for (country_name in unique(plot_data_intern2$country)) {
-      simple_data <- data_for_country[, c("running_day", country_name)]
-      simple_data <- simple_data[!is.na(simple_data[, country_name]), ]
-      names(simple_data)[which(names(simple_data) == country_name)] <- "active"
-      plot_first <- plot_first %>% add_trace(
-        data = simple_data,
-        x = ~as.numeric(running_day),
-        y = ~as.numeric(active),
-        name = country_name,
-        type = 'scatter',
-        text="",
-        mode = "lines",
-        line = list(color = palette_col[which(unique(plot_data_intern2$country) == country_name)])
-      )
-      
-    }
-    
-    plot_first %>%
-      layout(
-        xaxis = list(
-          title = "Running Day"
-        ),
-        yaxis = list(
-          title = "Active (Total cases)",
-          range = c(0, max(as.numeric(plot_data_intern2$value), na.rm=TRUE) + 0.3)
-        )
-      )
-    
-  })
 }

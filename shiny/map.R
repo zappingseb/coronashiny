@@ -25,8 +25,13 @@ map <- function(input, output, session, all_dates = NULL, map_data = NULL) {
   output$slider <- shiny::renderUI({
     material_spinner_show(session, session$ns("outmap"))
     div(style="width:85%;padding-left:7%;padding-right:7%",
-      shiny::sliderInput(inputId = session$ns("datum"), min = as.POSIXct("2020-02-01"), max = max(all_dates()), value = max(all_dates()),
-                         label = "Date", timeFormat="%Y-%m-%d", width = "100%", step = 1)
+      shiny::sliderInput(inputId = session$ns("datum"),
+                         min = as.POSIXct("2020-02-01"),
+                         max = max(all_dates()),
+                         value = max(all_dates()),
+                         step = 86400,
+                         label = "Date", timeFormat="%Y-%m-%d", width = "100%",
+                         animate = animationOptions(interval = 200))
     )
   })
   
