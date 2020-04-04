@@ -11,6 +11,8 @@ install.packages(c("dplyr", "shiny", "shinymaterial", "plotly", "viridisLite", "
 shiny::runApp("shiny")
 ```
 
+![](images/dashboard.jpg)
+
 The app is also deployed at: https://sebastianwolf.shinyapps.io/Corona-Shiny/
 
 ## Map
