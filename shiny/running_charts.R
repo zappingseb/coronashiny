@@ -151,12 +151,6 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
   # ---- data running ----
   running_day_data <- reactive({
     
-    country_names <- if(is.null(input$countries)){
-      default_countries
-    } else {
-      input$countries
-    }
-    
     plotting_data <- plot_data_intern()  %>%
       mutate(
         date_greater_200 = case_when(
