@@ -3,12 +3,22 @@ per_country_data <- function(covid_data) {
   no_china <- covid_data %>% filter(Country.Region != "China") 
   no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Lat = 0, Long = 0,
                          t(colSums(no_china[,c(-1, -2, -3, -4)], na.rm = TRUE)))
-  hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)") 
+  hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)")
+  if ("Combined_key" %in% daily_data) {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY") | Combined_key == "New York City, New York, US") %>%
+      mutate(Country.Region = "New York City")
+    
+  } else {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY")) %>%
+      mutate(Country.Region = "New York City")
+  }
   china_no_hubei <- covid_data %>% filter(Province.State != "Hubei", Country.Region == "China") %>%
     mutate(Country.Region = "China (without Hubei)") 
   global <- data.frame(Province.State = "", Country.Region = "AA - Global", Lat = 0, Long = 0,
                        t(colSums(covid_data[,c(-1, -2, -3, -4)], na.rm = TRUE)))
-  rbind(covid_data, no_china, global, hubei, china_no_hubei) %>%
+  rbind(covid_data, no_china, global, hubei, china_no_hubei, nyc) %>%
     mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>%
     select(-Province.State, -Lat, -Long) %>%
     group_by(Country.Region) %>%
@@ -24,12 +34,23 @@ per_country_daily <- function(daily_data) {
   no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Last.Update = 0,
                          t(colSums(no_china[,c(-1, -2, -3)], na.rm = TRUE)))
   hubei <- daily_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)") 
+  if ("Combined_key" %in% daily_data) {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY") | Combined_key == "New York City, New York, US") %>%
+      mutate(Country.Region = "New York City")
+    
+  } else {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY")) %>%
+      mutate(Country.Region = "New York City")
+    
+  }
   china_no_hubei <- daily_data %>% filter(Province.State != "Hubei", Country.Region == "China") %>%
     mutate(Country.Region = "China (without Hubei)") 
   global <- data.frame(Province.State = "", Country.Region = "AA - Global", Last.Update = 0,
                        t(colSums(daily_data[,c(-1, -2, -3)], na.rm = TRUE)))
   
-  rbind(daily_data, no_china, global, hubei, china_no_hubei) %>%
+  rbind(daily_data, no_china, global, hubei, china_no_hubei, nyc) %>%
     mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>%
     select(-Province.State, -Last.Update) %>%
     group_by(Country.Region) %>%
@@ -45,9 +66,16 @@ generate_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid
                          names(data_day)[grepl("Province", names(data_day))] <- "Province.State"
                          names(data_day)[grepl("Country", names(data_day))] <- "Country.Region"
                          names(data_day)[grepl("Last", names(data_day))] <- "Last.Update"
-                         data_day <- data_day %>% select(
-                           Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
-                         )
+                         if ("Combined_key" %in% names(data_day)) {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered, Combined_key
+                           )
+                           
+                         } else {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
+                           )
+                         }
                          data_day <- per_country_daily(data_day)
                          date_match <- stringr::str_match(string = x, pattern = "(\\d\\d)\\-(\\d\\d)\\-(\\d\\d\\d\\d)")
                          data.frame(
