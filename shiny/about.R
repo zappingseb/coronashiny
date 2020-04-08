@@ -20,8 +20,11 @@ aboutUI <- function(id) {
                     material_row(
                       material_column(width = 6,
                                       img(src="./img/zappingseb.jfif", width=60),
-                                      p(a(href="https://mail-wolf.de/?page_id=1292", alt="Sebastian Engel-Wolf", "Sebastian Engel-Wolf"), " is a freelance scientific software developer developing R-shiny apps in
-                            a pharmaceutical environment")
+                                      p(a(href="https://mail-wolf.de/?page_id=1292", alt="Sebastian Engel-Wolf", "Sebastian Engel-Wolf"),
+                                        " is a freelance scientific software developer developing R-shiny apps in a pharmaceutical environment"),
+                                      p(a(href="https://www.linkedin.com/in/zappingseb/", "LinkedIn")),
+                                      p(a(href="https://www.mail-wolf.de", "Homepage")),
+                                      p(a(href="https://twitter.com/zappingseb", "Twitter"))
                       ),
                       material_column(width = 6,
                                       img(src="./img/graphcount.jpg", width=60),
