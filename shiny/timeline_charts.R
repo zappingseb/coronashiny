@@ -81,7 +81,7 @@ timeline_chartsUI <- function(id) {
       )
     ),
     material_row(
-      material_card(title = "Mortality:",
+      material_card(title = "Case fatality rate:",
                     tagList(
                       p("This shows the percentage of lethal cases per country over time."),
                       p(tags$em("Hovering shows total death under the braces."))
@@ -252,7 +252,7 @@ timeline_charts <- function(input, output, session, all_data = all_data, map_dat
           title = "Date"
         ),
         yaxis = list(
-          title = "mortality (%)",
+          title = "Case fatality rate (%)",
           range = c(0, max(plot_data_intern()$mortality, na.rm=TRUE) + 0.3)
         )
       )

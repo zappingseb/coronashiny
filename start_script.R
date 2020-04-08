@@ -90,7 +90,7 @@ datatable(df,
             "Deaths (Johns Hopkins CSSE)",
             "Population (in Mio)",
             "Confirmed Cases on 100,000 inhabitants",
-            "mortality Rate (%)"
+            "Case fatality Rate (%)"
           ),
           options = list(
             pageLength = 200,

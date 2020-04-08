@@ -72,7 +72,7 @@ dt_table <- function(input, output, session, all_data = NULL, population_data_sh
                           "Recovered",
                           "Population (in Mio)",
                           "Confirmed Cases on 100,000 inhabitants",
-                          "mortality Rate (%)",
+                          "Case Fatality Rate Rate (%)",
                           "Still active"
                         ),
                         options = list(

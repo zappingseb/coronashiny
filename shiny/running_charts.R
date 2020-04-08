@@ -90,7 +90,7 @@ running_chartsUI <- function(id) {
     ),
     # ----- Mortality ----
     material_row(
-      material_card(title = "Mortality:",
+      material_card(title = "Case fatality rate:",
                     tagList(
                       p("This shows the percentage of lethal cases per country over time."),
                       p(tags$em("Hovering shows total death under the braces."))
@@ -269,7 +269,7 @@ running_charts <- function(input, output, session, all_data = all_data, map_data
   })
   # ---- mortality ----
   output$mortality <- renderPlotly({
-    out_plot <- running_plot(running_day_data = running_day_data, value = "mortality", label = "Mortality in %")
+    out_plot <- running_plot(running_day_data = running_day_data, value = "mortality", label = "Case fatality rate in %")
     wait_hide(session)
     out_plot
   })
