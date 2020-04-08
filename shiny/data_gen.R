@@ -3,12 +3,22 @@ per_country_data <- function(covid_data) {
   no_china <- covid_data %>% filter(Country.Region != "China") 
   no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Lat = 0, Long = 0,
                          t(colSums(no_china[,c(-1, -2, -3, -4)], na.rm = TRUE)))
-  hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)") 
+  hubei <- covid_data %>% filter(Province.State == "Hubei") %>% mutate(Country.Region = "China (only Hubei)")
+  if ("Combined_key" %in% covid_data) {
+    nyc <- covid_data %>%
+      filter(Province.State %in% c("New York City, NY") | Combined_key == "New York City, New York, US") %>%
+      mutate(Country.Region = "New York City")
+    
+  } else {
+    nyc <- covid_data %>%
+      filter(Province.State %in% c("New York City, NY")) %>%
+      mutate(Country.Region = "New York City")
+  }
   china_no_hubei <- covid_data %>% filter(Province.State != "Hubei", Country.Region == "China") %>%
     mutate(Country.Region = "China (without Hubei)") 
   global <- data.frame(Province.State = "", Country.Region = "AA - Global", Lat = 0, Long = 0,
                        t(colSums(covid_data[,c(-1, -2, -3, -4)], na.rm = TRUE)))
-  rbind(covid_data, no_china, global, hubei, china_no_hubei) %>%
+  rbind(covid_data, no_china, global, hubei, china_no_hubei, nyc) %>%
     mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>%
     select(-Province.State, -Lat, -Long) %>%
     group_by(Country.Region) %>%
@@ -20,6 +30,32 @@ per_country_daily <- function(daily_data) {
     Country.Region == "Mainland China" ~ "China",
     TRUE ~ as.character(Country.Region)
   ))
+  
+  if ("Combined_Key" %in% names(daily_data)) {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY") | Combined_Key == "New York City, New York, US") %>%
+      mutate(Country.Region = "New York City") %>% select(
+        Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
+      )
+    daily_data <- daily_data %>% select(
+      Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
+    )
+  } else {
+    nyc <- daily_data %>%
+      filter(Province.State %in% c("New York City, NY")) %>%
+      mutate(Country.Region = "New York City")
+  }
+  if (nrow(nyc) == 0) {
+    nyc <- data.frame(
+      Country.Region = "New York City",
+      Province.State = "New York City, NY",
+      Last.Update = daily_data$Last.Update[1],
+      Confirmed = 0,
+      Deaths = 0,
+      Recovered = 0
+    )
+  }
+  
   no_china <- daily_data %>% filter(Country.Region != "China") 
   no_china <- data.frame(Province.State = "", Country.Region = "AA - Global (without China)", Last.Update = 0,
                          t(colSums(no_china[,c(-1, -2, -3)], na.rm = TRUE)))
@@ -29,14 +65,14 @@ per_country_daily <- function(daily_data) {
   global <- data.frame(Province.State = "", Country.Region = "AA - Global", Last.Update = 0,
                        t(colSums(daily_data[,c(-1, -2, -3)], na.rm = TRUE)))
   
-  rbind(daily_data, no_china, global, hubei, china_no_hubei) %>%
+  rbind(daily_data, no_china, global, hubei, china_no_hubei, nyc) %>%
     mutate(Country.Region = str_replace(Country.Region, "\\*", "")) %>%
     select(-Province.State, -Last.Update) %>%
     group_by(Country.Region) %>%
     summarise_all(funs(sum), na.rm = TRUE)
 }
 
-generate_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid_19_daily_reports") {
+generate_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid_19_daily_reports", column = "Recovered") {
   
   recovered <- do.call(rbind,
                        lapply(list.files(folder, pattern = ".csv", full.names = T), function(x){
@@ -45,28 +81,45 @@ generate_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid
                          names(data_day)[grepl("Province", names(data_day))] <- "Province.State"
                          names(data_day)[grepl("Country", names(data_day))] <- "Country.Region"
                          names(data_day)[grepl("Last", names(data_day))] <- "Last.Update"
-                         data_day <- data_day %>% select(
-                           Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
-                         )
+                         if ("Combined_Key" %in% names(data_day)) {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered, Combined_Key
+                           )
+                         } else {
+                           data_day <- data_day %>% select(
+                             Province.State, Country.Region, Last.Update, Confirmed, Deaths, Recovered
+                           )
+                         }
                          data_day <- per_country_daily(data_day)
                          date_match <- stringr::str_match(string = x, pattern = "(\\d\\d)\\-(\\d\\d)\\-(\\d\\d\\d\\d)")
                          data.frame(
                            date = as.Date(paste0(date_match[,4], "-", date_match[,2], "-", date_match[,3])),
                            country = data_day$Country.Region,
-                           recovered = data_day$Recovered
+                           recovered = data_day$Recovered,
+                           confirmed = data_day$Confirmed,
+                           deaths = data_day$Deaths
                          )
                        }))
-  
   recovered <- recovered  %>% 
     group_by(country) %>%
-    mutate(recovered = case_when(
-      is.na(recovered) ~ lag(recovered),
-      TRUE ~ recovered
-    )) %>%
+    mutate(
+      recovered = case_when(
+        is.na(recovered) ~ lag(recovered),
+        TRUE ~ recovered
+      ),
+      confirmed = case_when(
+        is.na(confirmed) ~ lag(confirmed),
+        TRUE ~ confirmed
+      ),
+      deaths = case_when(
+        is.na(deaths) ~ lag(deaths),
+        TRUE ~ deaths
+      ),
+      active = as.numeric(confirmed) - as.numeric(deaths) - as.numeric(recovered)
+    ) %>%
     ungroup()
   return(recovered)
 }
-
 generate_all_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_covid_19_daily_reports") {
   
   recovered <- do.call(rbind,
@@ -208,37 +261,36 @@ generate_all_from_daily <- function(folder = "COVID-19/csse_covid_19_data/csse_c
 
 new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE) {
   
-  start_date <- str_replace(names(covid_data)[2], "X", "0") %>%
-    as.Date(format="%m.%d.%y")
-  end_date <- str_replace(names(covid_data)[length(names(covid_data))], "X", "0") %>%
-    as.Date(format="%m.%d.%y")
-  
-  dates_covid_19_confirmed <- seq.Date(start_date, to = end_date, by = 1)
-  stopifnot((ncol(covid_data) - 1) == length(dates_covid_19_confirmed))
-  
-  covid_data_selected <- covid_data %>%
-    filter(Country.Region %in% countries)
-  
-  covid_data_selected <- as.data.frame(t(covid_data_selected))
-  covid_data_selected$dates <- c("Country", dates_covid_19_confirmed)
-  colnames(covid_data_selected) <- c(covid_data_selected[1, 1:length(countries)] %>% unlist() %>% as.character(), "country")
-  covid_data_selected <- covid_data_selected[-1,]
-  covid_data_selected$country <- dates_covid_19_confirmed
-  selected_data <- if (is.na(colnames(covid_data_selected))) {
-    covid_data_selected[, -which(is.na(colnames(covid_data_selected)))]
-  } else {
-    covid_data_selected
-  }
-  country_data <- gather(selected_data, key = country) %>%
-    filter(!is.na(country))
+  # start_date <- str_replace(names(covid_data)[2], "X", "0") %>%
+  #   as.Date(format="%m.%d.%y")
+  # end_date <- str_replace(names(covid_data)[length(names(covid_data))], "X", "0") %>%
+  #   as.Date(format="%m.%d.%y")
+  # 
+  # dates_covid_19_confirmed <- seq.Date(start_date, to = end_date, by = 1)
+  # stopifnot((ncol(covid_data) - 1) == length(dates_covid_19_confirmed))
+  # 
+  # covid_data_selected <- covid_data %>%
+  #   filter(Country.Region %in% countries)
+  # 
+  # covid_data_selected <- as.data.frame(t(covid_data_selected))
+  # covid_data_selected$dates <- c("Country", dates_covid_19_confirmed)
+  # colnames(covid_data_selected) <- c(covid_data_selected[1, 1:length(countries)] %>% unlist() %>% as.character(), "country")
+  # covid_data_selected <- covid_data_selected[-1,]
+  # covid_data_selected$country <- dates_covid_19_confirmed
+  # selected_data <- if (is.na(colnames(covid_data_selected))) {
+  #   covid_data_selected[, -which(is.na(colnames(covid_data_selected)))]
+  # } else {
+  #   covid_data_selected
+  # }
+  # country_data <- gather(selected_data, key = country) %>%
+  #   filter(!is.na(country))
   
   if (growth_add) {
     
     return(
-      cbind(
-        add_growth_rate(country_data),
-        data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
-      ) %>% group_by(country) %>%
+      covid_data %>%
+        add_growth_rate() %>%
+        group_by(country) %>%
         mutate(value = case_when(
           is.na(value) ~ lag(value),
           TRUE ~ value
@@ -251,10 +303,8 @@ new_data_gen <- function(covid_data = NULL, countries = NULL, growth_add = TRUE)
     )
   } else {
     return(
-      cbind(
-        country_data,
-        data.frame(date = rep(dates_covid_19_confirmed, length(countries)))
-      ) %>% group_by(country) %>%
+      covid_data %>%
+        group_by(country) %>%
         mutate(value = case_when(
           is.na(value) ~ lag(value),
           TRUE ~ value
@@ -339,15 +389,17 @@ breaks_colors <- function(vec, reverse = FALSE) {
 }
 
 key_factors <- function(covid_data_long, population_data) {
+  
   max_exp_data <- covid_data_long %>%
     group_by(country) %>%
     filter(is_exponential == 1) %>%
     summarize(max_exponential_time = max(days_in_a_row)) %>%
     ungroup()
   
-  factor_data <- bind_cols(max_exp_data,
+  factor_data <- left_join(max_exp_data,
             covid_data_long %>%
               filter(country %in% max_exp_data$country) %>%
+              
               group_by(country) %>% 
               filter(date == max(date)) %>%
               mutate(
@@ -355,8 +407,7 @@ key_factors <- function(covid_data_long, population_data) {
                 still_exponential = ifelse(is_exponential == 1, "yes", "no")
               ) %>%
               select(doubling_days, still_exponential, value, deaths, recovered)
-            ) %>%
-    select(-country1) %>%
+            , by = "country") %>%
     rename(Country = country)
   
   factor_data <- left_join(factor_data, population_data, by = "Country") %>% 

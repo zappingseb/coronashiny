@@ -106,46 +106,32 @@ running_chartsUI <- function(id) {
   )
 }
 
-running_charts <- function(input, output, session, data_confirmed = data_confirmed, data_death = data_death, data_recovered = data_recovered, map_data = map_data, population_data = NULL) {
+running_charts <- function(input, output, session, all_data = all_data, map_data = map_data, population_data = NULL) {
   
-  default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)", "US")
+  default_countries <- c("New York City", "Korea, South", "Italy", "China (only Hubei)", "US")
   
  
   #----- Timeline Data -----
   
-  plot_data <- reactive({
+  plot_data_intern <- reactive({
     if (!is.null(input$countries)) {
-      confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
-      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value, deaths_change = change)
-      recovered <- data_recovered() %>% filter(country %in% input$countries)
+      selected_countries <-  input$countries
     } else {
-      confirmed_cases <- new_data_gen(data_confirmed(), default_countries)
-      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value, deaths_change = change)
-      recovered <- data_recovered() %>% filter(country %in% default_countries)
+      selected_countries <-  default_countries
     }
     
-    merged_data <- left_join(
-      left_join(confirmed_cases, deaths, by = c("country", "date")),
-      recovered, by = c("country", "date")
-    ) %>% add_mortality
-    return(merged_data)
+    return(
+      all_data() %>%
+        filter(country %in% selected_countries)
+    )
   })
   output$selector = renderUI({
     tagList(
       selectInput(inputId = session$ns('countries'),
-                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
+                  'Select Countries you want to add:', sort(unique(all_data()$country)),
                   selected = default_countries, multiple = TRUE),
       div(style="clear:both;height:20px;")
     )
-  })
-  # ---- plot_data_intern ----
-  plot_data_intern <- reactive({
-    
-    if (!is.null(input$countries)){
-      plot_data() %>% filter(country %in% input$countries)
-    }else {
-      plot_data() %>% filter(country %in% default_countries)
-    }
   })
   
   # ---- data running ----
@@ -201,7 +187,7 @@ running_charts <- function(input, output, session, data_confirmed = data_confirm
         yaxis = list(
           type = "log",
           title = "Doubling Days",
-          range = c(0, max(as.numeric(plot_data()$doubling_days), na.rm = T) + 0.5)
+          range = c(0, max(as.numeric(running_day_data()$doubling_days), na.rm = T) + 0.5)
         )
       )
     

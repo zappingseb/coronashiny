@@ -110,35 +110,30 @@ timeline_chartsUI <- function(id) {
   )
 }
 
-timeline_charts <- function(input, output, session, data_confirmed = data_confirmed, data_death = data_death, data_recovered = data_recovered, map_data = map_data) {
+timeline_charts <- function(input, output, session, all_data = all_data, map_data = map_data) {
   
-  default_countries <- c("Switzerland", "Korea, South", "Italy", "China (only Hubei)", "US")
+  default_countries <- c("New York City", "Korea, South", "Italy", "China (only Hubei)", "US")
   
   
   #----- Timeline Data -----
   
   plot_data <- reactive({
     if (!is.null(input$countries)) {
-      confirmed_cases <- new_data_gen(data_confirmed(), input$countries)
-      deaths <- new_data_gen(data_death(), input$countries, FALSE) %>% rename(deaths = value, deaths_change = change)
-      recovered <- data_recovered() %>% filter(country %in% input$countries)
+      selected_countries <-  input$countries
     } else {
-      confirmed_cases <- new_data_gen(data_confirmed(), default_countries)
-      deaths <- new_data_gen(data_death(), default_countries, FALSE) %>% rename(deaths = value, deaths_change = change)
-      recovered <- data_recovered() %>% filter(country %in% default_countries)
+      selected_countries <-  default_countries
     }
     
-    merged_data <- left_join(
-      left_join(confirmed_cases, deaths, by = c("country", "date")),
-      recovered, by = c("country", "date")
-    ) %>% add_mortality
-    return(merged_data)
+    return(
+      all_data() %>%
+       filter(country %in% selected_countries)
+    )
   })
   
   output$selector = renderUI({
     tagList(
       selectInput(inputId = session$ns('countries'),
-                  'Select Countries you want to add:', sort(unique(data_confirmed()$Country.Region)),
+                  'Select Countries you want to add:', sort(unique(all_data()$country)),
                   selected = default_countries, multiple = TRUE),
       div(style="clear:both;height:20px;")
     )
@@ -159,7 +154,7 @@ timeline_charts <- function(input, output, session, data_confirmed = data_confir
     
     plot_data_intern2 <- plot_data_intern()
     # generate bins based on input$bins from ui.R
-    
+
     plot_ly(
       data = plot_data_intern2,
       hoverinfo = "",
