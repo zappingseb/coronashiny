@@ -39,19 +39,7 @@ covid_data_deaths <- read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_
 
 default_countries <- covid_data$Country.Region
 
-
-
-confirmed <- new_data_gen(covid_data, default_countries)
-deaths <- new_data_gen(per_country_data(covid_data_deaths), default_countries, FALSE) %>% rename(deaths = value)
-recovered <- generate_from_daily()
-
-# recovered <- new_data_gen(per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_19-covid-Recovered.csv")),
-                          # default_countries, FALSE) %>% rename(recovered = value)
-
-merged_data <- left_join(
-  left_join(confirmed, deaths, by = c("country", "date")),
-  recovered, by = c("country", "date")
-)
+merged_data <- new_data_gen(generate_from_daily() %>% rename(value = confirmed))
 
 
 plot_ly(
@@ -159,8 +147,9 @@ ggplot(plot_test_data) +
 
 #------------- Test italy -------------------------
 
-  
-system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 5000)
+if (!dir.exists("covid19Italy")) {
+  system("git clone https://github.com/RamiKrispin/covid19Italy.git", timeout = 5000)
+}
 
 italy_data <- list(
   total = read.csv("covid19Italy/csv/italy_total.csv"),

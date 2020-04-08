@@ -180,31 +180,29 @@ server <- function(input, output, session) {
     )
   })
   #---- CSSE data ----
-  data_confirmed <- reactive({
-    git_pull()
-    wait_show(session)
-    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
-  })
-
-  data_death <- reactive({
-    git_pull()
-    per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"))
-  })
-  data_recovered <- reactive({
-    git_pull()
-    generate_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports")
-  })
+  # data_confirmed <- reactive({
+  #   git_pull()
+  #   wait_show(session)
+  #   per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv"))
+  # })
+  # 
+  # data_death <- reactive({
+  #   git_pull()
+  #   per_country_data(read.csv("./COVID-19/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv"))
+  # })
+  # data_recovered <- reactive({
+  #   git_pull()
+  #   
+  # })
   
   all_data <- reactive({
-    confirmed <- new_data_gen(data_confirmed(), data_confirmed()$Country.Region)
-    deaths <- new_data_gen(data_death(), data_death()$Country.Region, FALSE) %>%
-      rename(deaths = value)
-    recovered <- data_recovered()
-      # %>% replace_na(list("recovered" = max(recovered, na.rm = TRUE)))
-    left_join(
-      left_join(confirmed, deaths, by = c("country", "date")),
-      recovered, by = c("country", "date")
-    )
+    
+    git_pull()
+    wait_show(session)
+    generate_from_daily("./COVID-19/csse_covid_19_data/csse_covid_19_daily_reports") %>%
+      rename(value = confirmed) %>%
+      new_data_gen() %>%
+      add_mortality()
   })
   #---- Map data ----
   
@@ -234,15 +232,11 @@ server <- function(input, output, session) {
   })
   callModule(about, "about_module")
   callModule(timeline_charts, "timeline_charts_module",
-             data_recovered = data_recovered,
-             data_confirmed = data_confirmed,
-             data_death = data_death,
+             all_data = all_data,
              map_data = map_data
              )
   callModule(running_charts, "running_charts_module",
-             data_recovered = data_recovered,
-             data_confirmed = data_confirmed,
-             data_death = data_death,
+             all_data = all_data,
              map_data = map_data,
              population_data = population_data_short
              )
